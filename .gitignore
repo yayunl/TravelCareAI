@@ -49,6 +49,12 @@ coverage.xml
 logs/
 *.log
 
+# Evaluation script PDF reports (compare_strategy_performance.py)
+evaluation_reports/
+
+# Cached fonts for evaluation PDFs (DejaVu, downloaded on first use)
+.cache/travelcare_eval_fonts/
+
 # OS
 .DS_Store
 Thumbs.db
