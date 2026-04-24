@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from app import places_client, web_search
+from app.llm import openai_chat_temperature_for_model, raise_for_openai_response
 
 logger = logging.getLogger(__name__)
 
@@ -771,7 +772,7 @@ Rules:
             rounds += 1
             payload: dict[str, Any] = {
                 "model": model_name,
-                "temperature": 0.2,
+                "temperature": openai_chat_temperature_for_model(model_name, 0.2),
                 "response_format": {"type": "json_object"},
                 "messages": messages,
                 "tools": tools,
@@ -782,15 +783,7 @@ Rules:
                 headers={"Authorization": f"Bearer {openai_key}"},
                 json=payload,
             )
-            try:
-                r.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                logger.warning(
-                    "research OpenAI HTTP status=%s round=%d",
-                    e.response.status_code,
-                    rounds,
-                )
-                raise
+            raise_for_openai_response(r, model_id=model_name, context=f"research_tool_loop_round_{rounds}")
             data = r.json()
             msg = data["choices"][0]["message"]
             tcalls = msg.get("tool_calls") or []

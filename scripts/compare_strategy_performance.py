@@ -3,7 +3,8 @@
 Compare Travel Care /api/assist performance across query_strategy values.
 
 Requires the API server running (e.g. uvicorn app.main:app). Loads no secrets itself;
-OpenAI / Serper / Maps keys must be configured on the server.
+OpenAI / Serper / Maps keys must be configured on the server. LLM judge columns reflect
+the server's OPENAI_JUDGE_MODEL (or are absent if the judge is disabled / failed).
 
 Usage:
   cd /path/to/travelcareAI
@@ -84,6 +85,46 @@ SCENARIOS: dict[str, dict[str, Any]] = {
 }
 
 
+def _judge_flat(data: dict[str, Any]) -> dict[str, Any]:
+    """Flatten API `llm_judge` / `llm_judge_error` for table + CSV (matches app.main / app.llm._normalize_judge_output)."""
+    err = str(data.get("llm_judge_error") or "").strip()
+    raw = data.get("llm_judge")
+    base = {
+        "judge_status": "absent",
+        "judge_model": "",
+        "judge_urgency_appropriate": "",
+        "judge_safety": "",
+        "judge_correctness": "",
+        "judge_error": err[:500] if err else "",
+    }
+    if err:
+        base["judge_status"] = "error"
+        return base
+    if not isinstance(raw, dict) or not raw:
+        return base
+    if raw.get("evaluator_parse_error"):
+        base["judge_status"] = "parse_error"
+        base["judge_error"] = str(raw.get("evaluator_raw_excerpt") or "")[:500]
+        return base
+    u = raw.get("urgency_level_appropriate")
+    if u is True:
+        urg = "true"
+    elif u is False:
+        urg = "false"
+    else:
+        urg = "null"
+    base.update(
+        {
+            "judge_status": "ok",
+            "judge_model": str(raw.get("evaluator_model") or "")[:120],
+            "judge_urgency_appropriate": urg,
+            "judge_safety": str(raw.get("recommendation_safety") or ""),
+            "judge_correctness": str(raw.get("overall_correctness") or ""),
+        }
+    )
+    return base
+
+
 def _metrics(data: dict[str, Any]) -> dict[str, Any]:
     llm = data.get("llm") if isinstance(data.get("llm"), dict) else None
     digest = data.get("research_from_tools_digest") or ""
@@ -95,7 +136,7 @@ def _metrics(data: dict[str, Any]) -> dict[str, Any]:
     tpo_n = len(tpo) if isinstance(tpo, list) else 0
     ctab = (llm or {}).get("cost_estimate_table")
     ctab_n = len(ctab) if isinstance(ctab, list) else 0
-    return {
+    out: dict[str, Any] = {
         "http_ok": True,
         "elapsed_s": None,  # filled by caller
         "llm_present": bool(llm),
@@ -110,6 +151,41 @@ def _metrics(data: dict[str, Any]) -> dict[str, Any]:
         "cost_table_blocks_n": ctab_n,
         "abstain": (llm or {}).get("abstain") if llm else None,
     }
+    out.update(_judge_flat(data))
+    return out
+
+
+def _judge_display_short(m: dict[str, Any]) -> tuple[str, str, str, str]:
+    """Fixed-width pieces for the ASCII table (status, safety, correctness, urgency)."""
+    st = str(m.get("judge_status") or "absent")
+    if st == "ok":
+        st4 = "ok  "
+    elif st == "error":
+        st4 = "err "
+    elif st == "parse_error":
+        st4 = "pars"
+    else:
+        st4 = "—   "
+    saf = str(m.get("judge_safety") or "")[:8].ljust(8) if m.get("judge_safety") else "—       "
+    cor = str(m.get("judge_correctness") or "")
+    if cor == "partially_correct":
+        cor4 = "part"
+    elif cor == "incorrect":
+        cor4 = "inc "
+    elif cor == "correct":
+        cor4 = "corr"
+    else:
+        cor4 = (cor[:4] + "    ")[:4] if cor else "—   "
+    urg = m.get("judge_urgency_appropriate") or ""
+    if urg == "true":
+        ur3 = "Y  "
+    elif urg == "false":
+        ur3 = "N  "
+    elif urg == "null":
+        ur3 = "?  "
+    else:
+        ur3 = "—  "
+    return st4, saf, cor4, ur3
 
 
 def run_assist(
@@ -184,7 +260,7 @@ def main() -> int:
 
         header = (
             f"{'strategy':<22} {'status':>5} {'t_s':>8} {'digest':>7} {'rtc':>4} {'rq':>4} "
-            f"{'plans':>5} {'cost':>5} {'llm':>5} {'emerg':>5} {'notes'}"
+            f"{'plans':>5} {'cost':>5} {'llm':>5} {'emerg':>5} {'jdg':>4} {'safety':>8} {'cor':>4} {'urg':>3} {'notes'}"
         )
         print(header)
         print("-" * len(header))
@@ -209,8 +285,11 @@ def main() -> int:
                 note_parts.append("llm_error")
             if m.get("llm_skip"):
                 note_parts.append(m["llm_skip"])
-            notes = "; ".join(note_parts)[:60]
+            if m.get("judge_status") in ("error", "parse_error") and m.get("judge_error"):
+                note_parts.append("judge_err")
+            notes = "; ".join(note_parts)[:52]
 
+            st4, saf, cor4, ur3 = _judge_display_short(m)
             row = {
                 "scenario": args.scenario,
                 "strategy": strat,
@@ -224,6 +303,12 @@ def main() -> int:
                 "llm_present": m["llm_present"],
                 "emergency": m["emergency"],
                 "care_level": m.get("care_level"),
+                "judge_status": m.get("judge_status"),
+                "judge_model": m.get("judge_model"),
+                "judge_urgency_appropriate": m.get("judge_urgency_appropriate"),
+                "judge_safety": m.get("judge_safety"),
+                "judge_correctness": m.get("judge_correctness"),
+                "judge_error": m.get("judge_error"),
                 "notes": notes,
             }
             rows_out.append(row)
@@ -231,7 +316,8 @@ def main() -> int:
             print(
                 f"{strat:<22} {last_status:>5} {m['elapsed_s']:>8.3f} {m['digest_chars']:>7} "
                 f"{m['research_tool_calls']:>4} {m['retrieval_queries_n']:>4} {m['treatment_plans_n']:>5} "
-                f"{m['cost_table_blocks_n']:>5} {str(m['llm_present']):>5} {str(m['emergency']):>5} {notes}"
+                f"{m['cost_table_blocks_n']:>5} {str(m['llm_present']):>5} {str(m['emergency']):>5} "
+                f"{st4} {saf} {cor4} {ur3} {notes}"
             )
 
         if args.csv:
@@ -248,6 +334,10 @@ def main() -> int:
     print()
     print("Legend: t_s = median wall time; digest = research digest chars; rtc = research tool calls;")
     print("        rq = internal retrieval query count (single_turn_tools); plans/cost = LLM table sizes.")
+    print(
+        "        jdg/safety/cor/urg = LLM-as-judge (OPENAI_JUDGE_MODEL on server): status, recommendation_safety, "
+        "overall_correctness (corr/part/inc), urgency_level_appropriate (Y/N/?). absent = judge disabled or no payload."
+    )
     return 0 if all(r["status"] == 200 for r in rows_out) else 1
 
 

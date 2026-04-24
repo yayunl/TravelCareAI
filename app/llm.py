@@ -273,6 +273,39 @@ def _truncate_prompt_for_response(s: str, max_chars: int | None = None) -> str:
     return s[:max_chars] + "\n\n… [truncated: LLM_ACTIVITY_TRUNCATE_CHARS]"
 
 
+def openai_chat_temperature_for_model(model_id: str, preferred: float) -> float:
+    """
+    Reasoning-style OpenAI models reject non-default sampling (400 unsupported_value on temperature).
+    Use 1.0 for those; keep caller's preferred temperature for chat-style models (e.g. gpt-5-chat-latest).
+    """
+    m = (model_id or "").strip().lower()
+    if not m:
+        return preferred
+    if "gpt-5-chat" in m:
+        return preferred
+    if "gpt-5" in m or m.startswith("o1") or m.startswith("o3") or m.startswith("o4"):
+        return 1.0
+    return preferred
+
+
+def raise_for_openai_response(r: httpx.Response, *, model_id: str, context: str) -> None:
+    """Raise RuntimeError with response body so callers/logs show why OpenAI returned 4xx."""
+    try:
+        r.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        body = (e.response.text or "")[:2800]
+        logger.warning(
+            "openai_http_error context=%s status=%s model=%s body_prefix=%s",
+            context,
+            e.response.status_code,
+            model_id,
+            body[:900].replace("\n", " "),
+        )
+        raise RuntimeError(
+            f"OpenAI HTTP {e.response.status_code} ({context}, model={model_id!r}). {body}"
+        ) from e
+
+
 def _normalize_string_list(raw: Any, *, max_items: int, max_len: int) -> list[str]:
     if not isinstance(raw, list):
         return []
@@ -741,7 +774,7 @@ async def augment_with_openai(
     }
     user_content_str = json.dumps(user_message_payload, ensure_ascii=False)
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
-    temperature = 0.38 if chat_follow_up else 0.2
+    temperature = openai_chat_temperature_for_model(model_name, 0.38 if chat_follow_up else 0.2)
     payload = {
         "model": model_name,
         "temperature": temperature,
@@ -766,15 +799,7 @@ async def augment_with_openai(
             headers={"Authorization": f"Bearer {key}"},
             json=payload,
         )
-        try:
-            r.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            logger.warning(
-                "OpenAI chat/completions HTTP status=%s model=%s",
-                e.response.status_code,
-                model_name,
-            )
-            raise
+        raise_for_openai_response(r, model_id=model_name, context="traveler_augment")
         data = r.json()
         content = data["choices"][0]["message"]["content"]
         prompt_meta["assistant_message"] = _truncate_prompt_for_response(
@@ -814,7 +839,7 @@ async def plan_retrieval_subqueries(*, user_text: str) -> tuple[list[str], dict[
     }
     user_planner = json.dumps(user_planner_inner, ensure_ascii=False)
     model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
-    temperature = 0.15
+    temperature = openai_chat_temperature_for_model(model_name, 0.15)
     payload = {
         "model": model_name,
         "temperature": temperature,
@@ -831,11 +856,7 @@ async def plan_retrieval_subqueries(*, user_text: str) -> tuple[list[str], dict[
             headers={"Authorization": f"Bearer {key}"},
             json=payload,
         )
-        try:
-            r.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            logger.warning("OpenAI subquery planner HTTP status=%s", e.response.status_code)
-            raise
+        raise_for_openai_response(r, model_id=model_name, context="corpus_planner")
         data = r.json()
         content = data["choices"][0]["message"]["content"]
         parsed = json.loads(content)
@@ -956,7 +977,11 @@ async def evaluate_recommendation_with_judge(
     Returns (normalized_judge_dict, prompt_meta_for_transparency).
     """
     judge_key = (os.getenv("OPENAI_JUDGE_API_KEY", "") or "").strip() or openai_key
-    temperature = float(os.getenv("OPENAI_JUDGE_TEMPERATURE", "0.1") or 0.1)
+    judge_mid = judge_model.strip()
+    temperature = openai_chat_temperature_for_model(
+        judge_mid,
+        float(os.getenv("OPENAI_JUDGE_TEMPERATURE", "0.1") or 0.1),
+    )
     history = chat_history or []
     hist_trim = history[-12:] if len(history) > 12 else history
 
@@ -985,7 +1010,7 @@ async def evaluate_recommendation_with_judge(
     }
     user_str = json.dumps(user_obj, ensure_ascii=False)
     payload: dict[str, Any] = {
-        "model": judge_model.strip(),
+        "model": judge_mid,
         "temperature": temperature,
         "response_format": {"type": "json_object"},
         "messages": [
@@ -995,7 +1020,7 @@ async def evaluate_recommendation_with_judge(
     }
     meta: dict[str, Any] = {
         "endpoint": "https://api.openai.com/v1/chat/completions",
-        "model": judge_model.strip(),
+        "model": judge_mid,
         "temperature": temperature,
         "role": "llm_as_judge",
         "system": _truncate_prompt_for_response(JUDGE_SYSTEM_PROMPT),
@@ -1007,17 +1032,17 @@ async def evaluate_recommendation_with_judge(
             headers={"Authorization": f"Bearer {judge_key}"},
             json=payload,
         )
-        r.raise_for_status()
+        raise_for_openai_response(r, model_id=judge_mid, context="llm_judge")
         data = r.json()
         content = data["choices"][0]["message"]["content"]
         meta["assistant_message"] = _truncate_prompt_for_response(str(content) if content is not None else "")
         parsed = json.loads(content) if (content or "").strip() else {}
         normalized = _normalize_judge_output(parsed)
-        normalized["evaluator_model"] = judge_model.strip()
+        normalized["evaluator_model"] = judge_mid
         normalized["evaluator_role"] = "llm_as_judge"
         logger.info(
             "evaluate_recommendation_with_judge ok judge_model=%s primary=%s safety=%s correctness=%s",
-            judge_model.strip(),
+            judge_mid,
             primary_model_name,
             normalized.get("recommendation_safety"),
             normalized.get("overall_correctness"),
