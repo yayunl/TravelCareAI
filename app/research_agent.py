@@ -224,6 +224,17 @@ def _trace_tool_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any
     return out
 
 
+def _activity_transparency_char_limit() -> int:
+    return int(os.getenv("LLM_ACTIVITY_TRUNCATE_CHARS", "0") or "0")
+
+
+def _clip_for_activity_log(s: str) -> str:
+    lim = _activity_transparency_char_limit()
+    if lim <= 0 or len(s) <= lim:
+        return s
+    return s[:lim] + "\n… [truncated: LLM_ACTIVITY_TRUNCATE_CHARS]"
+
+
 def _simplify_tool_calls_for_activity_log(tcalls: Any) -> list[dict[str, Any]]:
     if not isinstance(tcalls, list):
         return []
@@ -233,9 +244,7 @@ def _simplify_tool_calls_for_activity_log(tcalls: Any) -> list[dict[str, Any]]:
             continue
         fn = x.get("function") or {}
         args_raw = fn.get("arguments") or "{}"
-        args_s = str(args_raw)
-        if len(args_s) > 4000:
-            args_s = args_s[:4000] + "…"
+        args_s = _clip_for_activity_log(str(args_raw))
         simplified.append(
             {
                 "id": str(x.get("id") or "")[:80],
@@ -246,10 +255,8 @@ def _simplify_tool_calls_for_activity_log(tcalls: Any) -> list[dict[str, Any]]:
     return simplified
 
 
-def _openai_messages_for_activity_log(
-    messages: list[dict[str, Any]], *, max_content: int = 24_000
-) -> list[dict[str, Any]]:
-    """JSON-safe copy of chat messages for UI (truncated)."""
+def _openai_messages_for_activity_log(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """JSON-safe copy of chat messages for UI (full content unless LLM_ACTIVITY_TRUNCATE_CHARS is set)."""
     out: list[dict[str, Any]] = []
     for m in messages:
         if not isinstance(m, dict):
@@ -260,13 +267,9 @@ def _openai_messages_for_activity_log(
         if content is None:
             entry["content"] = None
         elif isinstance(content, str):
-            entry["content"] = (
-                content
-                if len(content) <= max_content
-                else content[:max_content] + "\n… [truncated]"
-            )
+            entry["content"] = _clip_for_activity_log(content)
         else:
-            entry["content"] = str(content)[:max_content]
+            entry["content"] = _clip_for_activity_log(str(content))
         if role == "assistant" and m.get("tool_calls"):
             entry["tool_calls"] = _simplify_tool_calls_for_activity_log(m.get("tool_calls"))
         if role == "tool" and m.get("tool_call_id"):
@@ -275,14 +278,57 @@ def _openai_messages_for_activity_log(
     return out
 
 
-def _openai_assistant_response_for_activity_log(
-    msg: dict[str, Any], *, max_content: int = 48_000
-) -> dict[str, Any]:
+def _research_round_reasoning_summary(msg: dict[str, Any], batch: list[dict[str, Any]]) -> str:
+    """Human-readable plan for the activity UI: assistant prose when present + explicit tool intents."""
+    lines: list[str] = []
+    content = msg.get("content")
+    if isinstance(content, str) and content.strip():
+        lines.append(content.strip())
+    if batch:
+        if lines:
+            lines.append("")
+        lines.append("Tool requests this round:")
+        for b in batch:
+            name = str(b.get("name") or "tool").strip()
+            args = b.get("arguments") if isinstance(b.get("arguments"), dict) else {}
+            if name == "web_search":
+                q = str(args.get("query") or "").strip()
+                lines.append(f"- web_search: {q}")
+            elif name == "search_nearby_medical_places":
+                pt = str(args.get("place_type") or "")
+                kw = str(args.get("keyword") or "")
+                rad = args.get("radius_meters")
+                snip = args.get("include_review_snippets")
+                bits: list[str] = []
+                if pt:
+                    bits.append(f"place_type={pt}")
+                if kw:
+                    bits.append(f"keyword={kw}")
+                if rad is not None:
+                    bits.append(f"radius_m={rad}")
+                if snip is not None:
+                    bits.append(f"include_review_snippets={snip}")
+                lines.append("- search_nearby_medical_places: " + (", ".join(bits) if bits else "(defaults)"))
+            else:
+                try:
+                    blob = json.dumps(args, ensure_ascii=False)
+                except (TypeError, ValueError):
+                    blob = str(args)
+                lines.append(f"- {name}: {blob}")
+    if not lines:
+        return (
+            "No assistant-visible message text this round — the model went straight to tool calls. "
+            "See the tool list below and the raw assistant turn for parameters."
+        )
+    return _clip_for_activity_log("\n".join(lines))
+
+
+def _openai_assistant_response_for_activity_log(msg: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {"role": str(msg.get("role") or "assistant")}
     content = msg.get("content")
     if content is not None and content != "":
         c = str(content)
-        out["content"] = c if len(c) <= max_content else c[:max_content] + "\n… [truncated]"
+        out["content"] = _clip_for_activity_log(c)
     tc = msg.get("tool_calls") or []
     if isinstance(tc, list) and tc:
         out["tool_calls"] = _simplify_tool_calls_for_activity_log(tc)
@@ -771,6 +817,7 @@ Rules:
                 "round": rounds,
                 "kind": "llm_exchange",
                 "model": model_name,
+                "reasoning_summary": _research_round_reasoning_summary(msg, batch),
                 "request_messages": _openai_messages_for_activity_log(messages),
                 "response": _openai_assistant_response_for_activity_log(msg),
             }
@@ -806,7 +853,6 @@ Rules:
                 structured.setdefault("research_notes", [])
 
                 structured["digest_text"] = _build_digest_text(structured)
-                preview_cap = 80_000
                 activity_trace.append(
                     {
                         "phase": "research",
@@ -818,11 +864,7 @@ Rules:
                             "A digest was built for the main traveler-facing assistant."
                         ),
                         "json_response_chars": len(raw_content),
-                        "assistant_raw_json": (
-                            raw_content
-                            if len(raw_content) <= preview_cap
-                            else raw_content[:preview_cap] + "\n… [truncated]"
-                        ),
+                        "assistant_raw_json": _clip_for_activity_log(raw_content),
                     }
                 )
                 logger.info(
@@ -876,7 +918,7 @@ Rules:
                     {
                         "role": "tool",
                         "tool_call_id": tc["id"],
-                        "content": json.dumps(result, ensure_ascii=False)[:12000],
+                        "content": _clip_for_activity_log(json.dumps(result, ensure_ascii=False)),
                     }
                 )
 

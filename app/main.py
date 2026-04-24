@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 import os
 import time
@@ -8,14 +10,21 @@ from typing import Any, Literal
 
 from starlette.requests import Request
 
-QueryStrategy = Literal["single_turn", "single_turn_tools", "multi_turn", "unsolvable"]
+QueryStrategy = Literal[
+    "single_turn",
+    "single_turn_tools",
+    "multi_turn",
+    "multi_turn_with_tools",
+    "unsolvable",
+]
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.responses import JSONResponse, RedirectResponse
 
 from app import llm, places_client, rag, research_agent
 from app.severity_resolution import merge_effective_severity
@@ -70,6 +79,67 @@ ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 configure_logging()
 
+ACCESS_COOKIE_NAME = "tc_app_access"
+ACCESS_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
+_access_code_raw = os.getenv("APP_ACCESS_CODE", "").strip()
+
+
+def _access_gate_enabled() -> bool:
+    return bool(_access_code_raw)
+
+
+def _access_signing_key() -> bytes:
+    secret = (os.getenv("APP_ACCESS_SIGNING_SECRET", "") or "").strip().encode("utf-8")
+    if secret:
+        return secret[:128]
+    if not _access_code_raw:
+        return b""
+    return hashlib.sha256(f"tc_app_access|{_access_code_raw}".encode("utf-8")).digest()
+
+
+def _mint_access_cookie_value() -> str:
+    exp = int(time.time()) + ACCESS_COOKIE_MAX_AGE
+    payload = str(exp).encode("utf-8")
+    sig = hmac.new(_access_signing_key(), payload, hashlib.sha256).hexdigest()
+    return f"{exp}.{sig}"
+
+
+def _access_cookie_valid(value: str | None) -> bool:
+    if not value or "." not in value:
+        return False
+    exp_s, _, sig = value.partition(".")
+    if not sig:
+        return False
+    try:
+        exp = int(exp_s)
+    except ValueError:
+        return False
+    if exp < int(time.time()):
+        return False
+    payload = str(exp).encode("utf-8")
+    expected = hmac.new(_access_signing_key(), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, sig)
+
+
+def _submitted_code_matches(user_code: str) -> bool:
+    if not _access_code_raw:
+        return True
+    uh = hashlib.sha256(user_code.encode("utf-8")).digest()
+    sh = hashlib.sha256(_access_code_raw.encode("utf-8")).digest()
+    return hmac.compare_digest(uh, sh)
+
+
+def _access_cookie_secure_flag() -> bool:
+    return os.getenv("APP_ACCESS_COOKIE_SECURE", "").strip().lower() in ("1", "true", "yes")
+
+
+async def require_app_access(request: Request) -> None:
+    if not _access_gate_enabled():
+        return
+    if not _access_cookie_valid(request.cookies.get(ACCESS_COOKIE_NAME)):
+        raise HTTPException(status_code=401, detail="Access code required")
+
+
 app = FastAPI(title="Travel Care AI", version="0.1.0")
 
 
@@ -101,6 +171,10 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 
+class AccessVerifyRequest(BaseModel):
+    code: str = Field(default="", max_length=256)
+
+
 class AssistRequest(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
     language: str = Field(default="en", max_length=32)
@@ -121,7 +195,11 @@ class AssistRequest(BaseModel):
     )
     query_strategy: QueryStrategy = Field(
         default="single_turn",
-        description="Interaction pattern: single_turn | single_turn_tools | multi_turn | unsolvable",
+        description=(
+            "Interaction pattern: single_turn | single_turn_tools | multi_turn | multi_turn_with_tools | unsolvable. "
+            "single_turn and multi_turn use local corpus RAG + OpenAI only (no Google geocoding, Places, or web research). "
+            "multi_turn_with_tools matches prior multi-turn server behavior (external research when enabled)."
+        ),
     )
     map_latitude: float | None = Field(
         default=None,
@@ -151,22 +229,60 @@ class AssistRequest(BaseModel):
     )
 
 
-@app.get("/")
-async def index() -> FileResponse:
+@app.get("/", response_model=None)
+async def index_or_gate(request: Request) -> FileResponse | RedirectResponse:
+    if _access_gate_enabled():
+        if _access_cookie_valid(request.cookies.get(ACCESS_COOKIE_NAME)):
+            return RedirectResponse(url="/app", status_code=302)
+        return FileResponse(ROOT / "static" / "gate.html")
     return FileResponse(ROOT / "static" / "index.html")
 
 
+@app.get("/app", response_model=None)
+async def app_shell(request: Request) -> FileResponse | RedirectResponse:
+    if _access_gate_enabled() and not _access_cookie_valid(request.cookies.get(ACCESS_COOKIE_NAME)):
+        return RedirectResponse(url="/", status_code=302)
+    return FileResponse(ROOT / "static" / "index.html")
+
+
+@app.post("/api/access/verify")
+async def access_verify(body: AccessVerifyRequest) -> JSONResponse:
+    if not _access_gate_enabled():
+        return JSONResponse({"ok": True, "gateDisabled": True})
+    submitted = (body.code or "").strip()
+    if not submitted or not _submitted_code_matches(submitted):
+        raise HTTPException(status_code=401, detail="Invalid access code")
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie(
+        ACCESS_COOKIE_NAME,
+        _mint_access_cookie_value(),
+        max_age=ACCESS_COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        secure=_access_cookie_secure_flag(),
+        path="/",
+    )
+    return resp
+
+
 @app.get("/api/public-config")
-async def public_config() -> dict[str, str | bool]:
+async def public_config(_: None = Depends(require_app_access)) -> dict[str, str | bool]:
     key = os.getenv("GOOGLE_MAPS_API_KEY", "")
     maps_server = os.getenv("GOOGLE_MAPS_SERVER_KEY", "").strip()
     serper = os.getenv("SERPER_API_KEY", "").strip()
     serpapi = os.getenv("SERPAPI_API_KEY", "").strip()
     disable_research = os.getenv("DISABLE_RESEARCH_TOOLS", "").strip().lower() in ("1", "true", "yes")
+    judge_model = os.getenv("OPENAI_JUDGE_MODEL", "").strip()
+    judge_off = os.getenv("DISABLE_OPENAI_JUDGE", "").strip().lower() in ("1", "true", "yes")
+    oa_key = os.getenv("OPENAI_API_KEY", "").strip()
+    j_key = (os.getenv("OPENAI_JUDGE_API_KEY", "") or "").strip() or oa_key
     return {
         "googleMapsApiKey": key,
         "mapsEnabled": bool(key),
-        "openAiConfigured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
+        "openAiConfigured": bool(oa_key),
+        "openAiModel": (os.getenv("OPENAI_MODEL", "gpt-4o-mini") or "gpt-4o-mini").strip(),
+        "openAiJudgeModel": judge_model,
+        "openAiJudgeConfigured": bool(j_key and judge_model and not judge_off),
         "placesServerConfigured": bool(maps_server),
         "webSearchConfigured": bool(serper or serpapi),
         "serperConfigured": bool(serper),
@@ -178,7 +294,7 @@ async def public_config() -> dict[str, str | bool]:
 
 
 @app.post("/api/assist")
-async def assist(body: AssistRequest) -> dict:
+async def assist(body: AssistRequest, _: None = Depends(require_app_access)) -> dict:
     logger.info(
         "assist start strategy=%s chat_turns=%d message_chars=%d research_tools=%s",
         body.query_strategy,
@@ -189,6 +305,7 @@ async def assist(body: AssistRequest) -> dict:
     combined = _combined_text_for_signals(body.message, body.chat_history)
     rules = rule_triage(combined)
     strategy = body.query_strategy
+    no_server_external_tools = strategy in ("single_turn", "multi_turn")
     openai_key = os.getenv("OPENAI_API_KEY", "").strip()
 
     language = (body.language or "").strip() or "en"
@@ -240,7 +357,12 @@ async def assist(body: AssistRequest) -> dict:
     lat: float | None = body.map_latitude
     lng: float | None = body.map_longitude
     geocoded_travel_location = False
-    if maps_server_key and travel_location and (lat is None or lng is None):
+    if (
+        not no_server_external_tools
+        and maps_server_key
+        and travel_location
+        and (lat is None or lng is None)
+    ):
         geo = await places_client.geocode_address(travel_location, maps_server_key)
         if geo:
             lat, lng = geo
@@ -250,7 +372,7 @@ async def assist(body: AssistRequest) -> dict:
             logger.info("geocode returned no coordinates for assist")
 
     destination_local_context: dict[str, Any] | None = None
-    if maps_server_key and lat is not None and lng is not None:
+    if not no_server_external_tools and maps_server_key and lat is not None and lng is not None:
         try:
             destination_local_context = await places_client.fetch_destination_local_context(
                 lat, lng, maps_server_key
@@ -265,7 +387,8 @@ async def assist(body: AssistRequest) -> dict:
     research_error: str | None = None
     disable_research = os.getenv("DISABLE_RESEARCH_TOOLS", "").strip().lower() in ("1", "true", "yes")
     run_research = (
-        bool(openai_key)
+        not no_server_external_tools
+        and bool(openai_key)
         and body.research_tools
         and not disable_research
         and (bool(maps_server_key) or bool(serper_key) or bool(serpapi_key))
@@ -305,7 +428,10 @@ async def assist(body: AssistRequest) -> dict:
             )
     if not run_research:
         logger.info(
-            "research not run: openai=%s research_tools=%s disable_env=%s maps_key=%s serper=%s serpapi=%s",
+            "research not run: strategy=%s no_server_external_tools=%s openai=%s research_tools=%s "
+            "disable_env=%s maps_key=%s serper=%s serpapi=%s",
+            strategy,
+            no_server_external_tools,
             bool(openai_key),
             body.research_tools,
             disable_research,
@@ -383,6 +509,11 @@ async def assist(body: AssistRequest) -> dict:
                 destination_local_context=destination_local_context,
             )
             base["llm"] = llm_out
+            if isinstance(llm_out, dict) and no_server_external_tools:
+                # The model may still hallucinate named facilities with ratings from world knowledge even though
+                # research_from_tools_structured.nearby_facilities was never fetched — strip so UI matches server behavior.
+                llm_out["nearby_care_options"] = []
+                llm_out["nearby_care_caveats"] = []
             if isinstance(llm_out, dict):
                 merged = merge_effective_severity(rules, llm_out)
                 base["care_level"] = merged["care_level"]
@@ -415,6 +546,60 @@ async def assist(body: AssistRequest) -> dict:
                         "response_message": llm_prompt_meta.get("assistant_message"),
                     }
                 )
+
+            judge_model = os.getenv("OPENAI_JUDGE_MODEL", "").strip()
+            judge_off = os.getenv("DISABLE_OPENAI_JUDGE", "").strip().lower() in ("1", "true", "yes")
+            if (
+                judge_model
+                and not judge_off
+                and isinstance(llm_out, dict)
+                and llm_prompt_meta
+            ):
+                try:
+                    j_out, j_meta = await llm.evaluate_recommendation_with_judge(
+                        openai_key=openai_key,
+                        judge_model=judge_model,
+                        traveler_case_text=combined,
+                        chat_history=[t.model_dump() for t in body.chat_history],
+                        travel_location=travel_location,
+                        home_country=home_country,
+                        server_care_level=str(base.get("care_level", rules.care_level)),
+                        server_emergency=bool(base.get("emergency", rules.emergency)),
+                        matched_rules=list(rules.matched_rules),
+                        rule_rationale=list(rules.rationale),
+                        primary_model_name=str(
+                            llm_prompt_meta.get("model")
+                            or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+                        ).strip(),
+                        recommendation_llm=llm_out,
+                    )
+                    base["llm_judge"] = j_out
+                    if j_meta:
+                        base["llm_judge_api_prompt"] = j_meta
+                    assist_activity_log.append(
+                        {
+                            "phase": "judge_review",
+                            "kind": "llm_as_judge",
+                            "model": judge_model,
+                            "message": "Independent evaluator (LLM-as-judge) reviewed the primary traveler JSON.",
+                            "request_messages": [
+                                {"role": "system", "content": j_meta.get("system")},
+                                {"role": "user", "content": j_meta.get("user")},
+                            ],
+                            "response_message": j_meta.get("assistant_message"),
+                        }
+                    )
+                except Exception as je:  # noqa: BLE001
+                    err_j = str(je)
+                    logger.warning("llm judge failed: %s", err_j[:500])
+                    base["llm_judge_error"] = err_j[:1500]
+                    assist_activity_log.append(
+                        {
+                            "phase": "judge_review",
+                            "kind": "llm_judge_error",
+                            "message": err_j[:1200],
+                        }
+                    )
         except Exception as e:  # noqa: BLE001 — surface to client for class debugging
             base["llm_error"] = str(e)
             logger.exception("llm augment failed: %s", str(e)[:300])

@@ -28,7 +28,13 @@ import httpx
 # Repo root (parent of scripts/)
 ROOT = Path(__file__).resolve().parent.parent
 
-STRATEGY_CHOICES = ("single_turn", "single_turn_tools", "multi_turn", "unsolvable")
+STRATEGY_CHOICES = (
+    "single_turn",
+    "single_turn_tools",
+    "multi_turn",
+    "multi_turn_with_tools",
+    "unsolvable",
+)
 
 SCENARIOS: dict[str, dict[str, Any]] = {
     "mild_lisbon": {

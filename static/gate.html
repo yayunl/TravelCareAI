@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Travel Care AI — Access</title>
+    <link rel="icon" href="/static/logo.PNG" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --tc-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --tc-ink: #0f172a;
+        --tc-muted: #64748b;
+        --tc-line: rgba(148, 163, 184, 0.45);
+        --tc-accent: #0ea5e9;
+        --tc-radius: 14px;
+        --tc-shadow: 0 10px 40px -12px rgba(15, 23, 42, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: var(--tc-font);
+        color: var(--tc-ink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        background: radial-gradient(ellipse 900px 480px at 0% -5%, rgba(56, 189, 248, 0.22), transparent 55%),
+          radial-gradient(ellipse 800px 420px at 100% 0%, rgba(129, 140, 248, 0.18), transparent 50%),
+          linear-gradient(168deg, #f0f9ff 0%, #f8fafc 42%, #eef2ff 100%);
+        background-attachment: fixed;
+      }
+      .card {
+        width: 100%;
+        max-width: 400px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--tc-line);
+        border-radius: var(--tc-radius);
+        box-shadow: var(--tc-shadow);
+        padding: 1.5rem 1.35rem 1.4rem;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin-bottom: 1rem;
+      }
+      .brand img {
+        height: 40px;
+        width: auto;
+        object-fit: contain;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      p.lead {
+        margin: 0 0 1rem;
+        font-size: 0.9rem;
+        color: var(--tc-muted);
+        line-height: 1.45;
+      }
+      label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      input[type="password"],
+      input[type="text"] {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid var(--tc-line);
+        font: inherit;
+        margin-bottom: 0.75rem;
+      }
+      input:focus {
+        outline: 2px solid rgba(14, 165, 233, 0.35);
+        outline-offset: 1px;
+      }
+      button {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        border: none;
+        border-radius: 10px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--tc-accent), #6366f1);
+        color: #fff;
+      }
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+      .err {
+        margin: 0 0 0.65rem;
+        font-size: 0.85rem;
+        color: #b91c1c;
+        min-height: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="brand">
+        <img src="/static/logo.PNG" alt="" width="40" height="40" />
+        <h1>Travel Care AI</h1>
+      </div>
+      <p class="lead">Enter the access code to continue to the app.</p>
+      <p id="err" class="err" role="alert"></p>
+      <form id="f" autocomplete="on">
+        <label for="code">Access code</label>
+        <input id="code" name="code" type="password" inputmode="text" autocomplete="current-password" required />
+        <button type="submit" id="go">Continue</button>
+      </form>
+    </div>
+    <script>
+      (function () {
+        const form = document.getElementById("f");
+        const input = document.getElementById("code");
+        const btn = document.getElementById("go");
+        const err = document.getElementById("err");
+
+        form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          err.textContent = "";
+          btn.disabled = true;
+          try {
+            const r = await fetch("/api/access/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: input.value }),
+              credentials: "same-origin",
+            });
+            if (!r.ok) {
+              err.textContent = r.status === 401 ? "That code is not valid. Try again." : "Something went wrong. Try again.";
+              return;
+            }
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (data.ok) {
+              window.location.href = "/app";
+            }
+          } catch (_) {
+            err.textContent = "Network error. Check your connection and try again.";
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

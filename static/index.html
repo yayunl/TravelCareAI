@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Travel Care AI</title>
+    <link rel="icon" href="/static/logo.PNG" type="image/png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -54,15 +55,31 @@
           linear-gradient(168deg, #f0f9ff 0%, #f8fafc 42%, #eef2ff 100%);
         background-attachment: fixed;
       }
-      .site-title {
+      .site-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        flex-wrap: wrap;
         margin: 0.35rem 0 0.15rem;
-        font-size: clamp(1.65rem, 4vw, 2.15rem);
+      }
+      .site-brand .site-logo {
+        display: block;
+        height: 44px;
+        width: auto;
+        max-height: min(44px, 11vw);
+        object-fit: contain;
+        object-position: left center;
+        flex-shrink: 0;
+      }
+      .site-brand .site-title {
+        margin: 0;
+        font-size: clamp(1.5rem, 3.8vw, 2.05rem);
         font-weight: 800;
         letter-spacing: -0.03em;
         line-height: 1.15;
         color: var(--tc-ink);
       }
-      .site-title .brand-mark {
+      .site-brand .site-title .brand-mark {
         background: linear-gradient(120deg, #0284c7 0%, #6366f1 45%, #7c3aed 100%);
         -webkit-background-clip: text;
         background-clip: text;
@@ -542,12 +559,22 @@
       @keyframes tc-thinking-dot {
         0%,
         100% {
-          opacity: 0.2;
+          opacity: 0.25;
           transform: translateY(0);
         }
-        40% {
+        45% {
           opacity: 1;
-          transform: translateY(-3px);
+          transform: translateY(-4px);
+        }
+      }
+      /* Slow opacity-only pulse when OS requests reduced motion (no bounce). */
+      @keyframes tc-thinking-dot-soft {
+        0%,
+        100% {
+          opacity: 0.28;
+        }
+        50% {
+          opacity: 1;
         }
       }
       .cost-table {
@@ -656,6 +683,30 @@
         font-weight: 600;
         color: #0f172a;
         margin-bottom: 0.2rem;
+      }
+      .act-research-summary {
+        margin: 0.4rem 0 0.35rem;
+        padding: 0.5rem 0.6rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(224, 242, 254, 0.9), rgba(238, 242, 255, 0.92));
+        border: 1px solid #bae6fd;
+      }
+      .act-research-summary-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #0369a1;
+        margin-bottom: 0.35rem;
+      }
+      .act-research-reasoning-pre {
+        margin: 0;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #0f172a;
+        font-family: inherit;
       }
       .activity-step pre.act-json {
         margin: 0.35rem 0 0;
@@ -821,6 +872,34 @@
       }
       .api-pill.off .api-dot {
         background: #cbd5e1;
+      }
+      .api-pill-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .api-llm-model {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.22rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: #075985;
+        background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+        border: 1px solid #38bdf8;
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12);
+        max-width: min(100%, 220px);
+        word-break: break-word;
+      }
+      .api-llm-model-inactive {
+        opacity: 0.82;
+        border-color: #cbd5e1;
+        background: #f1f5f9;
+        color: #475569;
+        box-shadow: none;
       }
       .app-mode-bar {
         display: flex;
@@ -1050,6 +1129,19 @@
         border-bottom: 1px solid rgba(226, 232, 240, 0.85);
         background: linear-gradient(90deg, rgba(240, 249, 255, 0.9), rgba(238, 242, 255, 0.75));
       }
+      .session-modal-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+      .session-modal-logo {
+        height: 40px;
+        width: auto;
+        max-width: 120px;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
       .session-modal-header h2 {
         margin: 0;
         font-size: 1.08rem;
@@ -1167,6 +1259,16 @@
           animation-iteration-count: 1 !important;
           transition-duration: 0.01ms !important;
         }
+        /* Override the blanket rule above: class beats *, keep an infinite soft pulse. */
+        .tc-thinking-dot {
+          animation: tc-thinking-dot-soft 1.2s ease-in-out infinite !important;
+        }
+        .tc-thinking-dot:nth-child(2) {
+          animation-delay: 0.2s !important;
+        }
+        .tc-thinking-dot:nth-child(3) {
+          animation-delay: 0.4s !important;
+        }
         html {
           scroll-behavior: auto;
         }
@@ -1247,7 +1349,18 @@
       <label><input type="radio" name="appMode" value="demo" checked /> Demo</label>
       <label><input type="radio" name="appMode" value="normal" /> Normal</label>
     </div>
-    <h1 class="site-title">Travel Care <span class="brand-mark">AI</span></h1>
+    <div class="site-brand">
+      <img
+        class="site-logo"
+        src="/static/logo.PNG"
+        width="560"
+        height="280"
+        alt=""
+        decoding="async"
+        aria-hidden="true"
+      />
+      <h1 class="site-title">Travel Care <span class="brand-mark">AI</span></h1>
+    </div>
     <p class="site-tagline">
       Smarter orientation for health concerns while you travel — rules, retrieval, location-aware research, and optional
       AI guidance.
@@ -1288,10 +1401,6 @@
         <div class="tc-flow-slide" id="tcFlowSlideInfo">
           <div class="card tc-flow-card-inner" id="landingCard">
       <h2 style="margin-top: 0; font-size: 1.05rem">Traveler information</h2>
-      <p id="normalModeResearchNote" class="muted" hidden style="margin-top: 0">
-        Normal mode uses <strong>multi-turn</strong> dialogue and always enables <strong>server research</strong> (Google
-        Places + web search) when your server keys support it — settings are not shown here.
-      </p>
 
       <div id="demoOnlyBlock">
         <label for="examplePrompt">Sample prompt (demo)</label>
@@ -1300,21 +1409,14 @@
           style="width: 100%; padding: 0.45rem; border-radius: 8px; border: 1px solid #cbd5e1; font: inherit; box-sizing: border-box"
         >
           <option value="">— Choose an example —</option>
-          <option value="lisbon_mild">Lisbon — mild cold / pharmacy-type symptoms (single-turn)</option>
-          <option value="austin_fever">Austin, TX — fever after travel (multi-turn + demo coordinates)</option>
-          <option value="berlin_emergency">Berlin — chest pain &amp; breathlessness (emergency pattern)</option>
-          <option value="paris_rash">Paris — itchy rash, mild (clinic vs pharmacy)</option>
-          <option value="taipei_zh">Taipei — 中文描述头痛疲劳 (zh + multi-turn)</option>
-          <option value="unsolvable_rx">London — asks for diagnosis + prescription (unsolvable-aware)</option>
-          <option value="tokyo_tools">Tokyo — heat + long walks (single-turn + internal RAG tools)</option>
-          <option value="nyc_china">
-            New York City — visitor from China, mild illness + how US/NYC care works (multi-turn + demo coordinates)
-          </option>
+          <option value="lisbon_mild">1 · Single-turn — Lisbon, mild cold / pharmacy-type symptoms</option>
+          <option value="barcelona_dialogue">2 · Multi-turn (local) — Barcelona, stomach upset / hydration (no server Places/web)</option>
+          <option value="austin_fever">3 · Multi-turn + server tools — Austin, fever (demo coordinates for Places when keys allow)</option>
         </select>
         <p class="muted" style="margin-top: 0.35rem">
-          Loads language, trip/home text, coordinates for server research, and (for some rows) query strategy. In
-          <strong>single-turn</strong> (and other one-round) demo strategies load the sample into chat — press
-          <strong>Send</strong> once, then <strong>Generate report</strong> after the greeting.
+          Three curated samples: <strong>single_turn</strong> (one Send, then Generate report),
+          <strong>multi_turn</strong> (chat + local corpus only), and <strong>multi_turn_with_tools</strong> (chat + Google
+          Places / web when configured). You can still switch strategy manually below.
         </p>
 
         <label for="queryStrategy">Query strategy (demo)</label>
@@ -1323,13 +1425,16 @@
           style="width: 100%; padding: 0.45rem; border-radius: 8px; border: 1px solid #cbd5e1; font: inherit; box-sizing: border-box"
         >
           <option value="single_turn">
-            Single-turn — one reply per request (no internal tool rounds on the server)
+            Single-turn — one reply per request; local corpus + OpenAI only (no Google / web research)
           </option>
           <option value="single_turn_tools">
             Single-turn + internal tools — server runs extra retrieval without asking you between steps
           </option>
           <option value="multi_turn">
-            Multi-turn — model may ask for missing info; use chat for follow-up rounds
+            Multi-turn (no server tools) — clarification via chat; local corpus + OpenAI only (no Google / web research)
+          </option>
+          <option value="multi_turn_with_tools">
+            Multi-turn + server tools — same as before: chat + Google Places / web research when enabled
           </option>
           <option value="unsolvable">
             Unsolvable-aware — model may abstain when context or policy does not allow a safe answer
@@ -1396,7 +1501,18 @@
         <div class="tc-flow-slide tc-flow-slide-session" id="tcFlowSlideSession">
           <div class="session-modal-panel" role="dialog" aria-modal="true" aria-labelledby="sessionModalTitle">
         <div class="session-modal-header">
-          <h2 id="sessionModalTitle">TravelCare session</h2>
+          <div class="session-modal-title-wrap">
+            <img
+              class="session-modal-logo"
+              src="/static/logo.PNG"
+              width="160"
+              height="80"
+              alt=""
+              decoding="async"
+              aria-hidden="true"
+            />
+            <h2 id="sessionModalTitle">TravelCare session</h2>
+          </div>
           <button type="button" id="closeSessionModal" class="secondary">← Your trip</button>
         </div>
         <div class="session-modal-body">
@@ -1440,7 +1556,10 @@
             <button type="button" id="flowBackToChatBtn" class="secondary">← Back to chat</button>
             <div class="tc-report-slide-toolbar-actions">
               <button type="button" id="downloadReportPdfToolbarBtn" class="secondary" hidden>
-                Download PDF
+                Download Report
+              </button>
+              <button type="button" id="downloadReasoningReportToolbarBtn" class="secondary" hidden>
+                Download Reasoning Report
               </button>
             </div>
           </div>
@@ -1452,9 +1571,11 @@
         <h3>What the server did (tools &amp; research)</h3>
         <p id="panelActivityIntro" class="muted" style="margin-top: 0">
           Step-by-step view of internal OpenAI calls: corpus planning, research model tool rounds (web search /
-          nearby Places), then the main traveler-facing reply. JSON payloads use an expandable tree viewer; open
-          <strong>Plain JSON (copy)</strong> under each block when you need the raw string. Sensitive text is truncated;
-          this is for transparency only.
+          nearby Places), then the main traveler-facing reply. For each research round, the highlighted
+          <strong>plan &amp; tool requests</strong> block shows any assistant-visible text plus the tools the model chose
+          (models usually do not expose private chain-of-thought). JSON payloads use an expandable tree viewer; open
+          <strong>Plain JSON (copy)</strong> under each block when you need the raw string. Prompts and responses are
+          shown in full unless you set server env <code>LLM_ACTIVITY_TRUNCATE_CHARS</code> (optional cap for huge payloads).
         </p>
         <div id="panelActivityBody" class="activity-log"></div>
       </div>
@@ -1463,7 +1584,12 @@
         <div class="panel span-2" id="panelOverview">
           <div class="panel-overview-toolbar">
             <h3>Overview</h3>
-            <button type="button" id="downloadReportBtn" class="secondary" hidden>Download PDF</button>
+            <div class="panel-overview-downloads" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center">
+              <button type="button" id="downloadReportBtn" class="secondary" hidden>Download Report</button>
+              <button type="button" id="downloadReasoningReportBtn" class="secondary" hidden>
+                Download Reasoning Report
+              </button>
+            </div>
           </div>
           <div id="panelOverviewBody"></div>
         </div>
@@ -1534,6 +1660,11 @@
 
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
@@ -1609,11 +1740,13 @@
         if (!sel || !hint) return;
         const m = {
           single_turn:
-            "One self-contained reply per request. Follow-up chat is optional and not required by this mode.",
+            "One self-contained reply per request. The server does not call Google (geocoding, Places, time zone) or web search — only local corpus retrieval and OpenAI for the structured reply. Follow-up chat is optional.",
           single_turn_tools:
             "The server runs an extra internal step: the model proposes search phrases, then retrieval is merged before the main answer — you are not asked between those steps.",
           multi_turn:
-            "The model is steered to ask for missing information when helpful; use the chat box for multi-round dialogue.",
+            "Multi-round dialogue: the model may ask for missing details in questions_to_clarify. The server does not run Google geocoding, Places, time zone lookup, or web search — only local corpus retrieval and OpenAI.",
+          multi_turn_with_tools:
+            "Multi-round dialogue plus server research when keys allow: Google Places, web search, and geocoding may run before the reply. Use chat for follow-up rounds.",
           unsolvable:
             "The model may set abstain when required tools or information are missing or the request is out of scope.",
         };
@@ -1621,6 +1754,7 @@
       }
       document.getElementById("queryStrategy").addEventListener("change", () => {
         syncStrategyHint();
+        void syncResearchToolsForStrategy();
         updateChatChromeForSession();
       });
       syncStrategyHint();
@@ -1633,8 +1767,10 @@
       let apiOpenAiConfigured = false;
       let sessionMessage = "";
       let sessionChatHistory = [];
-      /** Last assist payload (without llm_api_prompt) for PDF download */
+      /** Last assist payload (without llm_api_prompt) for traveler PDF export */
       let lastAssistReportData = null;
+      /** Full last assist payload including llm_api_prompt for reasoning HTML export */
+      let lastAssistReasoningData = null;
       let lastReportLocalTimeLabel = "";
       /** "Demo" | "Normal" at report generation time (PDF export). */
       let lastReportSessionMode = "";
@@ -1653,20 +1789,63 @@
         if (isNormalMode()) return false;
         const sel = document.getElementById("queryStrategy");
         if (!sel) return true;
-        return sel.value !== "multi_turn";
+        return sel.value !== "multi_turn" && sel.value !== "multi_turn_with_tools";
       }
 
       function getEffectiveQueryStrategy() {
-        return isNormalMode() ? "multi_turn" : document.getElementById("queryStrategy").value;
+        return isNormalMode() ? "multi_turn_with_tools" : document.getElementById("queryStrategy").value;
       }
 
       function getEffectiveResearchTools() {
-        return isNormalMode() ? true : document.getElementById("researchTools").checked;
+        if (isNormalMode()) return true;
+        const strat = document.getElementById("queryStrategy");
+        if (strat && (strat.value === "single_turn" || strat.value === "multi_turn")) return false;
+        const rt = document.getElementById("researchTools");
+        return !!(rt && rt.checked);
+      }
+
+      const LOCAL_ONLY_STRATEGIES_RESEARCH_HINT =
+        "Single-turn and multi-turn (no server tools) use only local corpus retrieval and OpenAI — the server does not run Google geocoding, Places, time zone lookup, or web search (even if keys are configured).";
+
+      function applyResearchToolsFromPublicConfig(cfg) {
+        const rt = document.getElementById("researchTools");
+        const rth = document.getElementById("researchToolsHint");
+        const sel = document.getElementById("queryStrategy");
+        if (!rt || !cfg) return;
+        if (sel && (sel.value === "single_turn" || sel.value === "multi_turn")) {
+          rt.disabled = true;
+          rt.checked = false;
+          if (rth) rth.textContent = LOCAL_ONLY_STRATEGIES_RESEARCH_HINT;
+          return;
+        }
+        if (cfg.researchToolsAllowedByEnv === false) {
+          rt.checked = false;
+          rt.disabled = true;
+          if (rth) rth.textContent = "Research tools are disabled via DISABLE_RESEARCH_TOOLS on the server.";
+        } else {
+          rt.disabled = false;
+          if (sel.value === "multi_turn_with_tools") {
+            rt.checked = true;
+          }
+          if (rth && !rth.dataset.userEdited) {
+            const ps = cfg.placesServerConfigured ? "Places server key: yes" : "Places server key: no";
+            const ws = cfg.webSearchConfigured ? "Web search: yes" : "Web search: no";
+            const wv = [];
+            if (cfg.serperConfigured) wv.push("Serper");
+            if (cfg.serpapiConfigured) wv.push("SerpAPI");
+            const wsub = wv.length ? ` (${wv.join(" + ")})` : "";
+            rth.textContent = `${ps}; ${ws}${wsub}. Set “Where you are” (or use a demo sample with coordinates) for nearby Places results.`;
+          }
+        }
+      }
+
+      async function syncResearchToolsForStrategy() {
+        const cfg = await refreshApiFlags();
+        applyResearchToolsFromPublicConfig(cfg);
       }
 
       function syncAppModeUi() {
         const demoBlock = document.getElementById("demoOnlyBlock");
-        const nn = document.getElementById("normalModeResearchNote");
         const apiBar = document.getElementById("apiServiceIndicators");
         const apiHint = document.getElementById("apiServiceIndicatorsHint");
         const landingDisclaimer = document.getElementById("landingDisclaimer");
@@ -1676,7 +1855,6 @@
         const nm = isNormalMode();
         document.body.classList.toggle("tc-normal-mode", nm);
         if (demoBlock) demoBlock.hidden = nm;
-        if (nn) nn.hidden = !nm;
         if (apiBar) apiBar.hidden = nm;
         if (apiHint) apiHint.hidden = nm;
         if (landingDisclaimer) landingDisclaimer.hidden = nm;
@@ -1684,6 +1862,7 @@
         if (landingHomeHint) landingHomeHint.hidden = nm;
         if (sessionGenerateBlurb) sessionGenerateBlurb.hidden = nm;
         syncStrategyHint();
+        if (!nm) void syncResearchToolsForStrategy();
         updateChatChromeForSession();
       }
       document.querySelectorAll('input[name="appMode"]').forEach((r) => r.addEventListener("change", syncAppModeUi));
@@ -1701,6 +1880,17 @@
           lat: 38.7109,
           lng: -9.1432,
         },
+        barcelona_dialogue: {
+          message:
+            "Day two in Barcelona. Mild nausea and loose stools since last night after street food; no blood, no high fever. Drinking oral rehydration. A bit dizzy when standing fast but no fainting. Wondering if I should find a farmacia vs a walk-in clinic.",
+          tripLocation: "Barcelona, Spain",
+          homeCountry: "United States",
+          placeQuery: "La Rambla, 08002 Barcelona, Spain",
+          lang: "en",
+          queryStrategy: "multi_turn",
+          lat: 41.3818,
+          lng: 2.1685,
+        },
         austin_fever: {
           message:
             "Conference trip. Fever around 38–38.5°C since yesterday, sore throat, body aches. I can drink fluids and walk. Started about 36 hours ago.",
@@ -1708,75 +1898,9 @@
           homeCountry: "México",
           placeQuery: "1100 Congress Ave, Austin, TX 78701, USA",
           lang: "en",
-          queryStrategy: "multi_turn",
+          queryStrategy: "multi_turn_with_tools",
           lat: 30.2747,
           lng: -97.7404,
-        },
-        berlin_emergency: {
-          message:
-            "Sudden chest pressure for ~20 minutes, pain into the left arm, and I'm short of breath. Anxious and sweaty.",
-          tripLocation: "Berlin, Germany",
-          homeCountry: "Canada",
-          placeQuery: "Friedrichstraße 124, 10117 Berlin, Germany",
-          lang: "en",
-          queryStrategy: "single_turn",
-          lat: 52.5208,
-          lng: 13.389,
-        },
-        paris_rash: {
-          message:
-            "Mild itchy rash on forearms after new sunscreen yesterday. No fever, no lip swelling. Otherwise fine.",
-          tripLocation: "Paris, France",
-          homeCountry: "Japan",
-          placeQuery: "10 Rue de Rivoli, 75004 Paris, France",
-          lang: "en",
-          queryStrategy: "multi_turn",
-          lat: 48.8575,
-          lng: 2.3521,
-        },
-        taipei_zh: {
-          message:
-            "到台北两天了，昨天开始持续的头痛和疲倦，有一点喉咙痛，体温大概37.8度。没有胸痛或呼吸困难。",
-          tripLocation: "台北市, 台湾",
-          homeCountry: "中国大陆",
-          placeQuery: "No. 7, Section 5, Xinyi Road, Xinyi District, Taipei 110",
-          lang: "zh",
-          queryStrategy: "multi_turn",
-          lat: 25.034,
-          lng: 121.5654,
-        },
-        unsolvable_rx: {
-          message:
-            "Please give me a definite diagnosis for my rash and prescribe antibiotics I can buy here without seeing a doctor.",
-          tripLocation: "London, United Kingdom",
-          homeCountry: "United States",
-          placeQuery: "221B Baker Street, London NW1 6XE, United Kingdom",
-          lang: "en",
-          queryStrategy: "unsolvable",
-          lat: 51.5238,
-          lng: -0.1585,
-        },
-        tokyo_tools: {
-          message:
-            "Jet-lagged, walked ~12 km today in summer heat. Headache, nausea, feel dehydrated. No chest pain or confusion.",
-          tripLocation: "Tokyo, Japan",
-          homeCountry: "Australia",
-          placeQuery: "2-8-1 Nishi-Shinjuku, Shinjuku City, Tokyo 160-0023, Japan",
-          lang: "en",
-          queryStrategy: "single_turn_tools",
-          lat: 35.6852,
-          lng: 139.6934,
-        },
-        nyc_china: {
-          message:
-            "我在纽约旅游第四天。昨天开始喉咙痛、流鼻涕、低烧大概37.8°C，有点怕冷，没有胸痛或呼吸困难。我在国内习惯先去社区医院或校医院，不太清楚这里该不该去急诊、怎么找诊所、费用会不会很高。想先了解一下纽约这边的医疗体系大概怎么运作。",
-          tripLocation: "New York, NY, USA",
-          homeCountry: "China",
-          placeQuery: "350 5th Ave, New York, NY 10118, USA",
-          lang: "zh",
-          queryStrategy: "multi_turn",
-          lat: 40.7484,
-          lng: -73.9857,
         },
       };
 
@@ -1808,6 +1932,7 @@
         if (stratEl && x.queryStrategy) {
           stratEl.value = x.queryStrategy;
           syncStrategyHint();
+          void syncResearchToolsForStrategy();
         }
         lastMapLat = x.lat != null ? x.lat : null;
         lastMapLng = x.lng != null ? x.lng : null;
@@ -1854,13 +1979,51 @@
 
         const placesState = cfg.placesServerConfigured ? "ok" : "off";
 
-        host.appendChild(
+        const openAiGroup = document.createElement("span");
+        openAiGroup.className = "api-pill-group";
+        openAiGroup.appendChild(
           pill(
             "OpenAI",
             cfg.openAiConfigured ? "ok" : "off",
             "OPENAI_API_KEY — traveler-facing JSON, chat follow-ups, and the research sub-agent when enabled."
           )
         );
+        const modelId = (cfg.openAiModel && String(cfg.openAiModel).trim()) || "";
+        if (modelId) {
+          const m = document.createElement("span");
+          m.className = "api-llm-model" + (cfg.openAiConfigured ? "" : " api-llm-model-inactive");
+          m.setAttribute(
+            "title",
+            "OPENAI_MODEL on the server — used for corpus planning, research tool loop, and the main traveler reply when the API key is set."
+          );
+          m.textContent = modelId;
+          openAiGroup.appendChild(m);
+        }
+        host.appendChild(openAiGroup);
+
+        const judgeModelId = (cfg.openAiJudgeModel && String(cfg.openAiJudgeModel).trim()) || "";
+        const judgeGroup = document.createElement("span");
+        judgeGroup.className = "api-pill-group";
+        judgeGroup.appendChild(
+          pill(
+            "LLM judge",
+            cfg.openAiJudgeConfigured ? "ok" : "off",
+            judgeModelId
+              ? "OPENAI_JUDGE_MODEL=" +
+                  judgeModelId +
+                  " — audits the primary traveler JSON after each report (LLM-as-judge). Uses OPENAI_JUDGE_API_KEY if set, else OPENAI_API_KEY. Set DISABLE_OPENAI_JUDGE=1 to turn off."
+              : "Set OPENAI_JUDGE_MODEL (e.g. gpt-5) plus a valid API key to enable the evaluator pill."
+          )
+        );
+        if (judgeModelId) {
+          const jm = document.createElement("span");
+          jm.className = "api-llm-model" + (cfg.openAiJudgeConfigured ? "" : " api-llm-model-inactive");
+          jm.setAttribute("title", "OPENAI_JUDGE_MODEL on the server");
+          jm.textContent = judgeModelId;
+          judgeGroup.appendChild(jm);
+        }
+        host.appendChild(judgeGroup);
+
         host.appendChild(
           pill(
             "Google Places (server)",
@@ -1894,26 +2057,7 @@
         const r = await fetch("/api/public-config");
         const cfg = await r.json();
         apiOpenAiConfigured = !!cfg.openAiConfigured;
-        const rt = document.getElementById("researchTools");
-        const rth = document.getElementById("researchToolsHint");
-        if (rt) {
-          if (cfg.researchToolsAllowedByEnv === false) {
-            rt.checked = false;
-            rt.disabled = true;
-            if (rth) rth.textContent = "Research tools are disabled via DISABLE_RESEARCH_TOOLS on the server.";
-          } else {
-            rt.disabled = false;
-            if (rth && !rth.dataset.userEdited) {
-              const ps = cfg.placesServerConfigured ? "Places server key: yes" : "Places server key: no";
-              const ws = cfg.webSearchConfigured ? "Web search: yes" : "Web search: no";
-              const wv = [];
-              if (cfg.serperConfigured) wv.push("Serper");
-              if (cfg.serpapiConfigured) wv.push("SerpAPI");
-              const wsub = wv.length ? ` (${wv.join(" + ")})` : "";
-              rth.textContent = `${ps}; ${ws}${wsub}. Set “Where you are” (or use a demo sample with coordinates) for nearby Places results.`;
-            }
-          }
-        }
+        applyResearchToolsFromPublicConfig(cfg);
         banner.classList.remove("emergency");
         banner.textContent =
           "Use your destination’s official emergency numbers for urgent medical issues. This tool does not replace emergency services.";
@@ -2534,7 +2678,7 @@
             ? "No treatment options in this response."
             : isNormalMode()
               ? "Pick a plan, then Refine for a more detailed table (indicative only — not a binding quote)."
-              : "Pick a plan, then Refine for a more detailed line-item table (still educational — not a binding quote). With server research and a clear travel location, costs lean on web/Places signals; plain single-turn uses broad heuristics.";
+              : "Pick a plan, then Refine for a more detailed line-item table (still educational — not a binding quote). With server research (e.g. multi_turn_with_tools) and a clear travel location, costs lean on web/Places signals; single_turn and multi_turn use broad heuristics without those tools.";
 
         opts.forEach((p, idx) => {
           const row = el("div", "treatment-radio-row");
@@ -2698,7 +2842,8 @@
       const ACT_JSON_MAX_DEPTH = 14;
       const ACT_JSON_MAX_ARRAY = 100;
       const ACT_JSON_MAX_KEYS = 80;
-      const ACT_JSON_STR_MAX = 480;
+      /** 0 = no cap (show full strings in the activity JSON tree). Set >0 to limit very long values in the tree only. */
+      const ACT_JSON_STR_MAX = 0;
 
       function normalizeActivityJsonInput(value) {
         if (value === null || value === undefined) return value;
@@ -2738,7 +2883,7 @@
           span.className = "act-json-str";
           const full = value;
           const quoted = JSON.stringify(full);
-          if (quoted.length > ACT_JSON_STR_MAX) {
+          if (ACT_JSON_STR_MAX > 0 && full.length > ACT_JSON_STR_MAX) {
             span.textContent = JSON.stringify(full.slice(0, ACT_JSON_STR_MAX)) + "…";
             span.title = full;
           } else {
@@ -2916,6 +3061,22 @@
           meta.className = "act-meta";
           meta.textContent = "Step " + (idx + 1) + " · " + phase + (kind ? " · " + kind : "");
           box.appendChild(meta);
+          if (String(step.reasoning_summary || "").trim()) {
+            const rsWrap = document.createElement("div");
+            rsWrap.className = "act-research-summary";
+            const lab = document.createElement("div");
+            lab.className = "act-research-summary-label";
+            lab.textContent =
+              step.phase === "research" && step.kind === "llm_exchange" && step.round != null
+                ? "Research model — turn " + step.round + " · plan & tool requests"
+                : "Plan & tool requests";
+            rsWrap.appendChild(lab);
+            const pre = document.createElement("pre");
+            pre.className = "act-research-reasoning-pre";
+            pre.textContent = String(step.reasoning_summary).trim();
+            rsWrap.appendChild(pre);
+            box.appendChild(rsWrap);
+          }
           if (step.title) {
             box.appendChild(el("div", "act-title", String(step.title)));
           }
@@ -3035,242 +3196,712 @@
         });
       }
 
-      function buildReportExportMarkdown(data, localTimeLine) {
-        const L = [];
-        const llm = data.llm || {};
-        const line = (s) => L.push(String(s || ""));
-        const blank = () => L.push("");
-        const bullets = (title, items) => {
+      /**
+       * Rich HTML for PDF export. Uses the browser text stack so CJK / Unicode render correctly
+       * (jsPDF Helvetica + doc.text() only supports Latin-1 and was scrambling non‑ASCII).
+       */
+      function buildReportExportHtml(data, localTimeLine) {
+        const esc = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        const pre = (s) =>
+          '<div style="white-space:pre-wrap;word-break:break-word;font-size:12.5px;line-height:1.55;color:#334155;">' +
+          esc(s) +
+          "</div>";
+        const section = (title, body, c) =>
+          '<section style="margin:0 0 14px;border-radius:10px;padding:12px 14px;background:' +
+          c.bg +
+          ";border:1px solid " +
+          c.bd +
+          ';">' +
+          '<h2 style="margin:0 0 8px;font-size:14px;font-weight:800;color:' +
+          c.h +
+          ";padding-bottom:6px;border-bottom:2px solid " +
+          c.bd +
+          ';">' +
+          esc(title) +
+          "</h2>" +
+          body +
+          "</section>";
+        const mkUl = (items) => {
           const arr = Array.isArray(items) ? items : [];
-          if (!arr.length) return;
-          L.push("## " + title);
+          if (!arr.length) return "";
+          let b = '<ul style="margin:0;padding-left:1.1rem;">';
           arr.forEach((x) => {
-            const s = String(x || "").trim();
-            if (s) L.push("- " + s.replace(/\n/g, " "));
+            const t = String(x || "").trim();
+            if (t) b += '<li style="margin:6px 0;">' + esc(t).replace(/\n/g, "<br/>") + "</li>";
           });
-          blank();
+          b += "</ul>";
+          return b;
         };
 
-        L.push("# TravelCare guidance report");
-        blank();
+        const llm = data.llm || {};
+        const parts = [];
+        const pdfLogoSrc =
+          typeof window !== "undefined" && window.location && window.location.origin
+            ? window.location.origin + "/static/logo.PNG"
+            : "/static/logo.PNG";
+
+        parts.push(
+          '<header style="padding-bottom:14px;margin-bottom:16px;border-bottom:4px solid #0ea5e9;">' +
+            '<img src="' +
+            pdfLogoSrc +
+            '" alt="travelcare.ai" width="280" height="140" style="max-height:54px;width:auto;height:auto;display:block;margin:0 0 12px;object-fit:contain;" />' +
+            '<h1 style="margin:0;font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.03em;">TravelCare guidance report</h1>'
+        );
         if (lastReportSessionMode) {
-          line("**Session mode:** " + lastReportSessionMode);
-          blank();
+          parts.push(
+            '<p style="margin:8px 0 0;font-size:12.5px;color:#475569;"><strong>Session mode:</strong> ' +
+              esc(lastReportSessionMode) +
+              "</p>"
+          );
         }
-        line("**Local time (this device):** " + (localTimeLine || "—"));
-        blank();
+        parts.push(
+          '<p style="margin:4px 0 0;font-size:12.5px;color:#475569;"><strong>Local time (this device):</strong> ' +
+            esc(localTimeLine || "—") +
+            "</p></header>"
+        );
+
         if (llm.abstain === true && llm.abstention_reason) {
-          line("> **Limited answer / abstention:** " + String(llm.abstention_reason));
-          blank();
+          parts.push(
+            '<div style="margin-bottom:14px;padding:10px 12px;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13px;"><strong>Limited answer / abstention:</strong> ' +
+              esc(llm.abstention_reason) +
+              "</div>"
+          );
         }
-        L.push("## Trip context");
-        line("- **Where you are (trip):** " + (data.travel_location || data.locale || "—"));
-        line("- **Home (comparison):** " + (data.home_country || "—"));
-        line("- **Care level:** " + (data.care_level || "—"));
-        line("- **Emergency pattern:** " + (data.emergency ? "yes" : "no"));
+
+        let trip =
+          '<ul style="margin:0;padding-left:1.1rem;">' +
+          '<li style="margin:6px 0;"><strong>Where you are (trip):</strong> ' +
+          esc(data.travel_location || data.locale || "—") +
+          "</li>" +
+          '<li style="margin:6px 0;"><strong>Home (comparison):</strong> ' +
+          esc(data.home_country || "—") +
+          "</li>" +
+          '<li style="margin:6px 0;"><strong>Care level:</strong> ' +
+          esc(data.care_level || "—") +
+          "</li>" +
+          '<li style="margin:6px 0;"><strong>Emergency pattern:</strong> ' +
+          esc(data.emergency ? "yes" : "no") +
+          "</li>";
         if (data.severity_source === "llm_adjusted" && data.rule_triage) {
           const rt = data.rule_triage;
-          line(
-            "- **Severity source:** model adjusted keyword triage (rule snapshot: care " +
-              (rt.care_level || "—") +
-              ", emergency " +
-              (rt.emergency ? "yes" : "no") +
-              ")"
-          );
+          trip +=
+            '<li style="margin:6px 0;"><strong>Severity source:</strong> model adjusted keyword triage (rule snapshot: care ' +
+            esc(rt.care_level || "—") +
+            ", emergency " +
+            (rt.emergency ? "yes" : "no") +
+            ")</li>";
         } else if (data.severity_source) {
-          line("- **Severity source:** " + String(data.severity_source));
+          trip += '<li style="margin:6px 0;"><strong>Severity source:</strong> ' + esc(String(data.severity_source)) + "</li>";
         }
         if (data.llm_severity_override_rejected && data.llm_severity_override_reject_reason) {
-          line("- **Severity override:** " + String(data.llm_severity_override_reject_reason));
+          trip +=
+            '<li style="margin:6px 0;"><strong>Severity override:</strong> ' +
+            esc(String(data.llm_severity_override_reject_reason)) +
+            "</li>";
         }
-        if (!isNormalMode() && data.query_strategy) line("- **Query strategy:** " + data.query_strategy);
-        blank();
+        if (lastReportSessionMode === "Demo" && data.query_strategy) {
+          trip += '<li style="margin:6px 0;"><strong>Query strategy:</strong> ' + esc(String(data.query_strategy)) + "</li>";
+        }
+        trip += "</ul>";
+        parts.push(section("Trip context", trip, { h: "#0369a1", bg: "#f0f9ff", bd: "#7dd3fc" }));
+
+        if (data.llm_judge && typeof data.llm_judge === "object") {
+          const j = data.llm_judge;
+          const ua = j.urgency_level_appropriate;
+          const ur = ua === true ? "yes" : ua === false ? "no" : "uncertain / not stated";
+          let jb =
+            '<ul style="margin:0;padding-left:1.1rem;">' +
+            '<li style="margin:6px 0;"><strong>Evaluator model:</strong> ' +
+            esc(j.evaluator_model || "—") +
+            "</li>" +
+            '<li style="margin:6px 0;"><strong>Urgency appropriate:</strong> ' +
+            esc(ur) +
+            "</li>" +
+            '<li style="margin:6px 0;"><strong>Overall correctness:</strong> ' +
+            esc(String(j.overall_correctness || "—").replace(/_/g, " ")) +
+            "</li>" +
+            '<li style="margin:6px 0;"><strong>Safety:</strong> ' +
+            esc(String(j.recommendation_safety || "—")) +
+            "</li></ul>";
+          if (j.urgency_notes) jb += "<p style=\"margin:10px 0 0;\"><strong>Urgency notes</strong></p>" + pre(String(j.urgency_notes));
+          if (j.safety_notes) jb += "<p style=\"margin:10px 0 0;\"><strong>Safety notes</strong></p>" + pre(String(j.safety_notes));
+          if (j.correctness_notes)
+            jb += "<p style=\"margin:10px 0 0;\"><strong>Correctness notes</strong></p>" + pre(String(j.correctness_notes));
+          parts.push(
+            section("Independent evaluator (LLM-as-judge)", jb, { h: "#5b21b6", bg: "#f5f3ff", bd: "#c4b5fd" })
+          );
+        }
+        if (data.llm_judge_error) {
+          parts.push(
+            section(
+              "Evaluator error",
+              pre(String(data.llm_judge_error)),
+              { h: "#9a3412", bg: "#fff7ed", bd: "#fdba74" }
+            )
+          );
+        }
+
         if (data.research_from_tools_error) {
-          line("**Research tools error:** " + data.research_from_tools_error);
-          blank();
+          parts.push(
+            section(
+              "Research tools error",
+              pre(String(data.research_from_tools_error)),
+              { h: "#b91c1c", bg: "#fef2f2", bd: "#fecaca" }
+            )
+          );
         }
         if (data.research_from_tools_digest && String(data.research_from_tools_digest).trim()) {
-          L.push("## Research digest (tools)");
-          line(String(data.research_from_tools_digest).trim());
-          blank();
+          parts.push(
+            section(
+              "Research digest (tools)",
+              pre(String(data.research_from_tools_digest).trim()),
+              { h: "#b45309", bg: "#fffbeb", bd: "#fcd34d" }
+            )
+          );
         }
-        bullets("Rule checks", data.rule_rationale);
-        bullets("How sources apply to your trip", llm.sources_context_for_traveler);
+
+        const ruleInner = mkUl(data.rule_rationale);
+        if (ruleInner) parts.push(section("Rule checks & triage", ruleInner, { h: "#166534", bg: "#f0fdf4", bd: "#86efac" }));
+
+        const srcInner = mkUl(llm.sources_context_for_traveler);
+        if (srcInner) parts.push(section("How sources apply to your trip", srcInner, { h: "#6d28d9", bg: "#f5f3ff", bd: "#c4b5fd" }));
+
         const cites = data.citations || [];
         if (cites.length) {
-          L.push("## Retrieved snippets");
+          let cb = '<ul style="margin:0;padding-left:1.05rem;">';
           cites.forEach((c) => {
             const t = (c && (c.title || c.id)) || "Source";
-            line("- **" + String(t) + "**");
-            if (c && c.excerpt) line("  " + String(c.excerpt).trim().replace(/\n/g, " "));
+            cb += '<li style="margin:8px 0;"><strong>' + esc(String(t)) + "</strong>";
+            if (c && c.excerpt) {
+              cb +=
+                '<div style="margin-top:4px;font-size:12px;color:#475569;">' +
+                esc(String(c.excerpt).trim()).replace(/\n/g, "<br/>") +
+                "</div>";
+            }
+            cb += "</li>";
           });
-          blank();
+          cb += "</ul>";
+          parts.push(section("Retrieved snippets", cb, { h: "#0e7490", bg: "#ecfeff", bd: "#67e8f9" }));
         }
+
         if (llm.summary_for_traveler) {
-          L.push("## Summary");
-          line(String(llm.summary_for_traveler).trim());
-          blank();
+          parts.push(
+            section(
+              "Summary",
+              pre(String(llm.summary_for_traveler).trim()),
+              { h: "#0f172a", bg: "#f8fafc", bd: "#cbd5e1" }
+            )
+          );
         } else if (data.llm_skip_reason || data.llm_error) {
-          L.push("## Summary");
-          line(
+          const msg =
             data.llm_skip_reason === "missing_openai_api_key"
               ? "No LLM summary (OpenAI key not configured)."
               : data.llm_error
                 ? "LLM error: " + data.llm_error
-                : "No summary in this response."
-          );
-          blank();
+                : "No summary in this response.";
+          parts.push(section("Summary", pre(msg), { h: "#64748b", bg: "#f8fafc", bd: "#e2e8f0" }));
         }
-        bullets("Local healthcare vs your home system", llm.healthcare_system_contrast);
-        bullets("What to do next", llm.what_to_do_next);
+
+        const hc = mkUl(llm.healthcare_system_contrast);
+        if (hc) parts.push(section("Local healthcare vs your home system", hc, { h: "#1d4ed8", bg: "#eff6ff", bd: "#93c5fd" }));
+
+        const nxt = mkUl(llm.what_to_do_next);
+        if (nxt) parts.push(section("What to do next", nxt, { h: "#a16207", bg: "#fefce8", bd: "#fde047" }));
+
         const opts = Array.isArray(llm.nearby_care_options) ? llm.nearby_care_options : [];
         if (opts.length) {
-          L.push("## Nearby care options");
+          let nb = '<ul style="margin:0;padding-left:1.05rem;">';
           opts.forEach((o) => {
             if (!o || typeof o !== "object") return;
             const bits = [o.name || "Facility"];
             if (o.type) bits.push(String(o.type));
             if (o.distance_m != null) bits.push(String(o.distance_m) + " m");
-            line("- **" + bits[0] + "**" + (bits.length > 1 ? " (" + bits.slice(1).join(", ") + ")" : ""));
-            if (o.address) line("  Address: " + String(o.address));
-            if (o.why_consider) line("  " + String(o.why_consider).trim().replace(/\n/g, " "));
-            if (o.maps_url && String(o.maps_url).startsWith("https://")) line("  Maps: " + o.maps_url);
+            nb +=
+              '<li style="margin:10px 0;"><strong>' +
+              esc(bits[0]) +
+              "</strong>" +
+              (bits.length > 1
+                ? ' <span style="color:#64748b;">(' + esc(bits.slice(1).join(", ")) + ")</span>"
+                : "");
+            if (o.address) nb += '<div style="margin-top:3px;font-size:12px;">' + esc(String(o.address)) + "</div>";
+            if (o.why_consider) {
+              nb +=
+                '<div style="margin-top:3px;font-size:12px;">' +
+                esc(String(o.why_consider).trim()).replace(/\n/g, "<br/>") +
+                "</div>";
+            }
+            if (o.maps_url && String(o.maps_url).startsWith("https://")) {
+              nb +=
+                '<div style="margin-top:2px;font-size:11.5px;"><span style="color:#0284c7;">' +
+                esc(String(o.maps_url)) +
+                "</span></div>";
+            }
+            nb += "</li>";
           });
-          blank();
+          nb += "</ul>";
+          parts.push(section("Nearby care options", nb, { h: "#0f766e", bg: "#f0fdfa", bd: "#5eead4" }));
         }
+
         const caveats = Array.isArray(llm.nearby_care_caveats) ? llm.nearby_care_caveats : [];
         if (caveats.length) {
-          L.push("## Other nearby listings (caveats)");
+          let cv = '<ul style="margin:0;padding-left:1.05rem;">';
           caveats.forEach((c) => {
             const s = String(c || "").trim();
-            if (s) L.push("- " + s.replace(/\n/g, " "));
+            if (s) cv += '<li style="margin:5px 0;">' + esc(s).replace(/\n/g, "<br/>") + "</li>";
           });
-          blank();
+          cv += "</ul>";
+          parts.push(section("Other nearby listings (caveats)", cv, { h: "#9a3412", bg: "#fff7ed", bd: "#fdba74" }));
         }
+
         const tplans = Array.isArray(llm.treatment_plan_options) ? llm.treatment_plan_options : [];
         const costBlocks = Array.isArray(llm.cost_estimate_table) ? llm.cost_estimate_table : [];
         if (tplans.length || costBlocks.length) {
-          L.push("## Treatment paths & indicative costs");
-          tplans.forEach((p) => {
-            if (!p || typeof p !== "object") return;
-            line("- **" + (p.title || p.id || "Plan") + "**");
-            if (p.description) line("  " + String(p.description).trim().replace(/\n/g, " "));
-          });
+          let tb = "";
+          if (tplans.length) {
+            tb += '<p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#334155;">Treatment plan options</p><ul style="margin:0 0 12px;padding-left:1.05rem;">';
+            tplans.forEach((p) => {
+              if (!p || typeof p !== "object") return;
+              tb += '<li style="margin:6px 0;"><strong>' + esc(p.title || p.id || "Plan") + "</strong>";
+              if (p.description) tb += '<div style="margin-top:3px;font-size:12px;">' + esc(String(p.description).trim()).replace(/\n/g, "<br/>") + "</div>";
+              tb += "</li>";
+            });
+            tb += "</ul>";
+          }
           costBlocks.forEach((block) => {
             if (!block || typeof block !== "object") return;
-            blank();
-            line(
-              "### " +
-                (block.plan_title || block.plan_id || "Plan") +
-                (block.currency ? " · " + block.currency : "")
-            );
+            tb +=
+              '<p style="margin:10px 0 4px;font-size:12.5px;font-weight:700;color:#0f172a;">' +
+              esc(block.plan_title || block.plan_id || "Plan") +
+              (block.currency ? " · " + esc(block.currency) : "") +
+              "</p>";
             const rows = block.rows || [];
             if (rows.length) {
+              tb +=
+                '<table style="width:100%;border-collapse:collapse;font-size:11.5px;margin:4px 0 8px;border:1px solid #e2e8f0;"><thead><tr style="background:#f1f5f9;"><th style="text-align:left;padding:4px 6px;border:1px solid #e2e8f0;">Item</th><th style="padding:4px 6px;border:1px solid #e2e8f0;">Low</th><th style="padding:4px 6px;border:1px solid #e2e8f0;">High</th><th style="text-align:left;padding:4px 6px;border:1px solid #e2e8f0;">Notes</th></tr></thead><tbody>';
               rows.forEach((r) => {
-                line(
-                  "- " +
-                    (r.item || "—") +
-                    " · low " +
-                    formatCostAmount(r.low_amount) +
-                    " · high " +
-                    formatCostAmount(r.high_amount) +
-                    (r.notes ? " · " + String(r.notes) : "")
-                );
+                tb +=
+                  "<tr>" +
+                  '<td style="padding:4px 6px;border:1px solid #e2e8f0;">' +
+                  esc(r.item || "—") +
+                  "</td>" +
+                  '<td style="padding:4px 6px;border:1px solid #e2e8f0;">' +
+                  esc(formatCostAmount(r.low_amount)) +
+                  "</td>" +
+                  '<td style="padding:4px 6px;border:1px solid #e2e8f0;">' +
+                  esc(formatCostAmount(r.high_amount)) +
+                  "</td>" +
+                  '<td style="padding:4px 6px;border:1px solid #e2e8f0;">' +
+                  esc(r.notes ? String(r.notes) : "") +
+                  "</td></tr>";
               });
+              tb += "</tbody></table>";
             }
             if (block.total_low != null || block.total_high != null) {
-              line(
-                "- *Indicative total:* " +
-                  formatCostAmount(block.total_low) +
-                  " – " +
-                  formatCostAmount(block.total_high) +
-                  (block.currency ? " " + block.currency : "")
-              );
+              tb +=
+                '<p style="margin:0 0 8px;font-size:12px;color:#475569;"><em>Indicative total:</em> ' +
+                esc(formatCostAmount(block.total_low)) +
+                " – " +
+                esc(formatCostAmount(block.total_high)) +
+                (block.currency ? " " + esc(block.currency) : "") +
+                "</p>";
             }
           });
           if (llm.cost_uncertainty_note) {
-            blank();
-            line("*Cost note:* " + String(llm.cost_uncertainty_note));
+            tb += '<p style="margin:6px 0 0;font-size:12px;color:#64748b;"><em>Cost note:</em> ' + esc(String(llm.cost_uncertainty_note)) + "</p>";
           }
-          blank();
+          parts.push(section("Treatment paths & indicative costs", tb, { h: "#7c2d12", bg: "#fff7ed", bd: "#fdba74" }));
         }
+
         const phTips = llm.pharmacy_visit_tips || [];
         const otcEx = llm.otc_medication_examples || [];
         const medLinks = llm.medication_reference_links || [];
         if (phTips.length || otcEx.length || medLinks.length) {
-          L.push("## Pharmacy / OTC orientation");
-          bullets("Visit tips", phTips);
-          bullets("OTC examples", otcEx);
-          if (medLinks.length) {
-            L.push("### Reference links");
-            medLinks.forEach((u) => {
-              const s = String(u || "").trim();
-              if (s) L.push("- " + s);
-            });
-            blank();
+          let ph = "";
+          if (phTips.length) {
+            ph += '<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#334155;">Visit tips</p>' + mkUl(phTips);
           }
+          if (otcEx.length) {
+            ph += '<p style="margin:10px 0 4px;font-size:12px;font-weight:700;color:#334155;">OTC examples</p>';
+            otcEx.forEach((row) => {
+              if (!row || typeof row !== "object") return;
+              ph += '<div style="margin:8px 0;padding:8px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">';
+              if (row.ingredient_or_class) ph += "<strong>" + esc(row.ingredient_or_class) + "</strong>";
+              if (row.why_mentioned) ph += '<div style="margin-top:4px;font-size:12px;">' + esc(row.why_mentioned) + "</div>";
+              if (row.ask_pharmacist_note) ph += '<div style="margin-top:4px;font-size:12px;">' + esc(row.ask_pharmacist_note) + "</div>";
+              if (row.brand_examples_nonbinding) {
+                ph +=
+                  '<div style="margin-top:4px;font-size:11.5px;color:#64748b;">Examples (non-binding): ' +
+                  esc(row.brand_examples_nonbinding) +
+                  "</div>";
+              }
+              ph += "</div>";
+            });
+          }
+          if (medLinks.length) {
+            ph += '<p style="margin:10px 0 4px;font-size:12px;font-weight:700;color:#334155;">Reference links</p><ul style="margin:0;padding-left:1.05rem;">';
+            medLinks.forEach((u) => {
+              if (u && typeof u === "object" && u.url) {
+                ph +=
+                  '<li style="margin:5px 0;"><strong>' +
+                  esc(String(u.title || u.url)) +
+                  "</strong><br/><span style=\"font-size:11.5px;color:#0284c7;\">" +
+                  esc(String(u.url)) +
+                  "</span></li>";
+              } else {
+                const s = String(u || "").trim();
+                if (s) ph += '<li style="margin:5px 0;">' + esc(s) + "</li>";
+              }
+            });
+            ph += "</ul>";
+          }
+          parts.push(section("Pharmacy / OTC orientation", ph, { h: "#0369a1", bg: "#f0f9ff", bd: "#7dd3fc" }));
         }
+
         const disc = llm.disclaimer || data.disclaimer || "Educational use only — not a diagnosis.";
-        L.push("## Disclaimer");
-        line(disc);
-        blank();
-        line("—");
-        line("*Exported from Travel Care AI. Not medical advice.*");
-        return L.join("\n");
+        parts.push(section("Disclaimer", pre(disc), { h: "#475569", bg: "#f1f5f9", bd: "#94a3b8" }));
+
+        parts.push(
+          '<footer style="margin-top:18px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11.5px;color:#64748b;">Exported from Travel Care AI — not medical advice.</footer>'
+        );
+
+        return (
+          '<div class="tc-pdf-export-root" style="width:700px;padding:28px 32px 40px;box-sizing:border-box;background:#ffffff;color:#1e293b;font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans SC,Noto Sans JP,PingFang SC,Microsoft YaHei,sans-serif;font-size:13px;line-height:1.5;">' +
+          parts.join("") +
+          "</div>"
+        );
       }
 
-      function stripMarkdownForPdf(md) {
-        let s = String(md || "");
-        s = s.replace(/\r\n/g, "\n");
-        s = s.replace(/\*\*([^*]+)\*\*/g, "$1");
-        s = s.replace(/\*([^*\n]+)\*/g, "$1");
-        s = s.replace(/^#{1,6}\s+/gm, "");
-        s = s.replace(/^>\s?/gm, "");
-        s = s.replace(/\n{3,}/g, "\n\n");
-        return s.trim();
+      /**
+       * Standalone HTML report: LLM prompts/responses and assist_activity_log with full text,
+       * structured with headings and bullets for readability.
+       */
+      function buildReasoningReportHtml(data, localTimeLine) {
+        const esc = (s) =>
+          String(s ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        const preFmt = (s) =>
+          '<pre style="margin:10px 0 0;padding:12px 14px;background:#0f172a0a;border:1px solid #e2e8f0;border-radius:8px;white-space:pre-wrap;word-break:break-word;font-size:12.5px;line-height:1.55;color:#1e293b;">' +
+          esc(s) +
+          "</pre>";
+        const bullet = (label, value) => {
+          const v = value == null || value === "" ? "—" : String(value);
+          return '<li style="margin:6px 0;"><strong>' + esc(label) + ":</strong> " + esc(v) + "</li>";
+        };
+
+        const formatChatMessages = (messages) => {
+          if (!Array.isArray(messages) || !messages.length) {
+            return '<p style="color:#64748b;margin:0;">(none)</p>';
+          }
+          let h = '<ul style="margin:0;padding-left:0;list-style:none;">';
+          messages.forEach((m, idx) => {
+            if (!m || typeof m !== "object") return;
+            const role = String(m.role || "?");
+            const roleColor =
+              role === "system" ? "#0369a1" : role === "user" ? "#6d28d9" : role === "assistant" ? "#0f766e" : "#64748b";
+            h += '<li style="margin:14px 0;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;background:#fafafa;">';
+            h +=
+              '<div style="font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;color:' +
+              roleColor +
+              ';">' +
+              esc(role) +
+              " · message " +
+              (idx + 1) +
+              "</div>";
+            const c = m.content;
+            if (c != null && String(c).trim() !== "") {
+              h += "<div style=\"margin-top:8px;font-weight:600;color:#334155;\">Content (full)</div>";
+              h += preFmt(typeof c === "string" ? c : JSON.stringify(c, null, 2));
+            }
+            if (Array.isArray(m.tool_calls) && m.tool_calls.length) {
+              h += '<div style="margin-top:10px;font-weight:700;color:#334155;">Tool calls requested</div><ul style="margin:6px 0 0;padding-left:1.2rem;">';
+              m.tool_calls.forEach((tc) => {
+                const fn = (tc && tc.function) || {};
+                const nm = String(fn.name || (tc && tc.name) || "tool");
+                const raw =
+                  fn.arguments != null
+                    ? String(fn.arguments)
+                    : tc && tc.arguments != null
+                      ? String(tc.arguments)
+                      : "";
+                h += "<li style=\"margin:8px 0;\"><code>" + esc(nm) + "</code>";
+                if (raw) h += preFmt(raw);
+                h += "</li>";
+              });
+              h += "</ul>";
+            }
+            if (m.tool_call_id) {
+              h += '<p style="margin:8px 0 0;font-size:12px;color:#64748b;">tool_call_id: ' + esc(m.tool_call_id) + "</p>";
+            }
+            h += "</li>";
+          });
+          h += "</ul>";
+          return h;
+        };
+
+        const parts = [];
+        parts.push("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/>");
+        parts.push("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/>");
+        parts.push("<title>Travel Care AI — Reasoning report</title>");
+        parts.push(
+          "<style>body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans SC','Noto Sans JP','PingFang SC','Microsoft YaHei',sans-serif;margin:0;padding:24px 18px 48px;background:#f8fafc;color:#0f172a;line-height:1.5;} .wrap{max-width:920px;margin:0 auto;} h1{font-size:1.5rem;margin:0 0 8px;} .muted{color:#64748b;font-size:0.95rem;margin:0 0 20px;} h2{font-size:1.1rem;margin:28px 0 10px;padding-bottom:6px;border-bottom:2px solid #bae6fd;color:#0c4a6e;} h3{font-size:0.95rem;margin:16px 0 6px;color:#334155;} .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 4px 14px -8px rgba(15,23,42,0.12);} footer{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;}</style></head><body><div class=\"wrap\">"
+        );
+        parts.push("<h1>Reasoning report</h1>");
+        parts.push(
+          '<p class="muted">Travel Care AI — exported server/LLM transparency. ' +
+            esc(localTimeLine || "") +
+            (localTimeLine ? " · " : "") +
+            "Full request/response text as returned to the app (not medical advice).</p>"
+        );
+
+        parts.push('<div class="card"><h2>Session context</h2><ul style="margin:0;padding-left:1.1rem;">');
+        parts.push(bullet("Query strategy", data.query_strategy));
+        parts.push(bullet("Travel location", data.travel_location || data.locale));
+        parts.push(bullet("Home country", data.home_country));
+        parts.push(bullet("Language", data.language || (data.llm && data.llm.output_language)));
+        parts.push("</ul></div>");
+
+        const prompt = data.llm_api_prompt;
+        if (prompt && typeof prompt === "object") {
+          parts.push('<div class="card"><h2>Main traveler model — full prompts &amp; reply</h2>');
+          parts.push("<p style=\"margin:0 0 8px;color:#475569;\">Same payload used for the structured traveler JSON call.</p>");
+          parts.push("<ul style=\"margin:0 0 12px;padding-left:1.1rem;\">");
+          parts.push(bullet("Endpoint", prompt.endpoint));
+          parts.push(bullet("Model", prompt.model));
+          parts.push(bullet("Temperature", prompt.temperature != null ? String(prompt.temperature) : ""));
+          parts.push("</ul>");
+          parts.push("<h3>System message (full)</h3>");
+          parts.push(preFmt(String(prompt.system || "")));
+          parts.push("<h3>User message — JSON payload (full)</h3>");
+          parts.push(preFmt(String(prompt.user || "")));
+          if (prompt.assistant_message != null && String(prompt.assistant_message).trim() !== "") {
+            parts.push("<h3>Assistant raw JSON response (full)</h3>");
+            parts.push(preFmt(String(prompt.assistant_message)));
+          }
+          parts.push("</div>");
+        } else {
+          parts.push(
+            '<div class="card"><h2>Main traveler model</h2><p style="margin:0;color:#64748b;">No llm_api_prompt on this response (e.g. OpenAI skipped or normal-mode payload omitted).</p></div>'
+          );
+        }
+
+        const jPrompt = data.llm_judge_api_prompt;
+        if (data.llm_judge && typeof data.llm_judge === "object") {
+          const j = data.llm_judge;
+          parts.push('<div class="card"><h2>LLM-as-judge (independent evaluator)</h2>');
+          parts.push("<ul style=\"margin:0 0 12px;padding-left:1.1rem;\">");
+          parts.push(bullet("Evaluator model", j.evaluator_model));
+          const ua = j.urgency_level_appropriate;
+          parts.push(
+            bullet(
+              "Urgency level appropriate",
+              ua === true ? "yes" : ua === false ? "no" : "uncertain / not stated"
+            )
+          );
+          parts.push(bullet("Overall correctness", String(j.overall_correctness || "—").replace(/_/g, " ")));
+          parts.push(bullet("Recommendation safety", j.recommendation_safety));
+          parts.push("</ul>");
+          if (j.urgency_notes) parts.push("<h3>Urgency notes</h3>" + preFmt(String(j.urgency_notes)));
+          if (j.safety_notes) parts.push("<h3>Safety notes</h3>" + preFmt(String(j.safety_notes)));
+          if (j.correctness_notes)
+            parts.push("<h3>Correctness notes</h3>" + preFmt(String(j.correctness_notes)));
+          parts.push("<h3>Normalized JSON</h3>" + preFmt(JSON.stringify(j, null, 2)));
+          if (jPrompt && typeof jPrompt === "object") {
+            parts.push("<h3>Judge — system (full)</h3>" + preFmt(String(jPrompt.system || "")));
+            parts.push("<h3>Judge — user payload (full)</h3>" + preFmt(String(jPrompt.user || "")));
+            if (jPrompt.assistant_message)
+              parts.push("<h3>Judge — assistant reply (full)</h3>" + preFmt(String(jPrompt.assistant_message)));
+          }
+          parts.push("</div>");
+        }
+        if (data.llm_judge_error) {
+          parts.push(
+            '<div class="card"><h2>LLM-as-judge error</h2><p style="margin:0;">' +
+              esc(String(data.llm_judge_error)) +
+              "</p></div>"
+          );
+        }
+
+        const log = data.assist_activity_log;
+        if (Array.isArray(log) && log.length) {
+          parts.push('<div class="card"><h2>Server activity — tools &amp; research (full text)</h2>');
+          parts.push(
+            "<p style=\"margin:0 0 12px;color:#475569;\">Each bullet is one logged step. Request/response blocks mirror the in-app transparency panel.</p>"
+          );
+          log.forEach((step, idx) => {
+            if (!step || typeof step !== "object") return;
+            const phase = String(step.phase || "server");
+            const kind = String(step.kind || "");
+            parts.push('<div style="margin:18px 0;padding-top:14px;border-top:1px solid #e2e8f0;">');
+            parts.push(
+              "<h3 style=\"margin:0 0 8px;\">Step " +
+                (idx + 1) +
+                ": " +
+                esc(phase) +
+                (kind ? " · " + esc(kind) : "") +
+                (step.round != null ? " · round " + esc(String(step.round)) : "") +
+                "</h3>"
+            );
+            if (step.title) parts.push("<p style=\"margin:4px 0;font-weight:600;\">" + esc(step.title) + "</p>");
+            if (step.message) parts.push("<p style=\"margin:6px 0;\">" + esc(step.message) + "</p>");
+            if (step.detail) parts.push("<p style=\"margin:6px 0;color:#475569;\">" + esc(step.detail) + "</p>");
+            if (step.reasoning_summary && String(step.reasoning_summary).trim()) {
+              parts.push("<h3 style=\"margin-top:12px;\">Plan &amp; tool requests (summary)</h3>");
+              parts.push(preFmt(String(step.reasoning_summary)));
+            }
+            if (Array.isArray(step.calls) && step.calls.length) {
+              parts.push("<h3 style=\"margin-top:12px;\">Tool calls (parameters)</h3><ul style=\"padding-left:1.1rem;\">");
+              step.calls.forEach((c) => {
+                const nm = (c && c.name) || "tool";
+                const args = c && c.arguments;
+                const argStr =
+                  args && typeof args === "object" ? JSON.stringify(args, null, 2) : String(args != null ? args : "");
+                parts.push("<li style=\"margin:8px 0;\"><code>" + esc(nm) + "</code>" + preFmt(argStr) + "</li>");
+              });
+              parts.push("</ul>");
+            }
+            if (step.summary && typeof step.summary === "object") {
+              parts.push("<h3 style=\"margin-top:12px;\">Tool result summary</h3>");
+              parts.push(preFmt(JSON.stringify(step.summary, null, 2)));
+            }
+            if (Array.isArray(step.request_messages) && step.request_messages.length) {
+              parts.push("<h3 style=\"margin-top:12px;\">LLM request — messages (full)</h3>");
+              parts.push(formatChatMessages(step.request_messages));
+            }
+            if (step.response && typeof step.response === "object") {
+              parts.push("<h3 style=\"margin-top:12px;\">LLM response — assistant turn (full)</h3>");
+              parts.push(preFmt(JSON.stringify(step.response, null, 2)));
+            }
+            if (step.response_message && String(step.response_message).trim()) {
+              parts.push("<h3 style=\"margin-top:12px;\">LLM response — raw assistant text (full)</h3>");
+              parts.push(preFmt(String(step.response_message)));
+            }
+            if (step.assistant_message && String(step.assistant_message).trim()) {
+              parts.push("<h3 style=\"margin-top:12px;\">Assistant message (full)</h3>");
+              parts.push(preFmt(String(step.assistant_message)));
+            }
+            if (step.assistant_raw_json && String(step.assistant_raw_json).trim()) {
+              parts.push("<h3 style=\"margin-top:12px;\">Research model — final structured JSON (full)</h3>");
+              parts.push(preFmt(String(step.assistant_raw_json)));
+            }
+            if (Array.isArray(step.llm_planned_queries) && step.llm_planned_queries.length) {
+              parts.push("<h3 style=\"margin-top:12px;\">Corpus planner — planned queries</h3><ul>");
+              step.llm_planned_queries.forEach((q) => {
+                parts.push("<li>" + esc(String(q)) + "</li>");
+              });
+              parts.push("</ul>");
+            }
+            if (step.llm_planner_exchange && typeof step.llm_planner_exchange === "object") {
+              const px = step.llm_planner_exchange;
+              parts.push("<h3 style=\"margin-top:12px;\">Corpus planner — exchange</h3>");
+              if (px.request_messages) {
+                parts.push("<h4 style=\"margin:8px 0 4px;\">Request messages</h4>");
+                parts.push(formatChatMessages(px.request_messages));
+              }
+              if (px.assistant_message) {
+                parts.push("<h4 style=\"margin:12px 0 4px;\">Assistant message (full)</h4>");
+                parts.push(preFmt(String(px.assistant_message)));
+              }
+            }
+            if (Array.isArray(step.queries_run) && step.queries_run.length) {
+              parts.push("<h3 style=\"margin-top:12px;\">Retrieval — queries run</h3><ul>");
+              step.queries_run.forEach((q) => parts.push("<li>" + esc(String(q)) + "</li>"));
+              parts.push("</ul>");
+            }
+            parts.push("</div>");
+          });
+          parts.push("</div>");
+        } else {
+          parts.push(
+            '<div class="card"><h2>Server activity log</h2><p style="margin:0;color:#64748b;">No assist_activity_log entries on this response.</p></div>'
+          );
+        }
+
+        parts.push(
+          "<footer>Travel Care AI — reasoning export for transparency only. Not medical advice. Do not share if the file contains personal health details.</footer>"
+        );
+        parts.push("</div></body></html>");
+        return parts.join("");
       }
 
-      function downloadReportAsPdfFromMarkdown(md, filenameStem) {
+      function downloadReasoningReportAsHtmlFile(data, localTimeLine, filenameStem) {
+        const html = buildReasoningReportHtml(data, localTimeLine);
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = (filenameStem || "travelcare-reasoning") + ".html";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      async function downloadReportAsPdfFromData(data, localTimeLine, filenameStem) {
         const g = window;
         let JsPdfCtor = g.jspdf && g.jspdf.jsPDF;
         if (typeof JsPdfCtor !== "function" && typeof g.jsPDF === "function") {
           JsPdfCtor = g.jsPDF;
         }
         if (typeof JsPdfCtor !== "function") {
-          showMessageModal(
+          await showMessageModal(
             "The PDF library did not load (often a network or blocker issue). Try again or check your connection.",
-            "Download PDF"
+            "Download Report"
           );
           return;
         }
-        const plain = stripMarkdownForPdf(md);
-        const doc = new JsPdfCtor({ unit: "pt", format: "letter", compress: true });
-        const pageH = doc.internal.pageSize.getHeight();
-        const pageW = doc.internal.pageSize.getWidth();
-        const marginX = 48;
-        const marginY = 54;
-        const maxW = pageW - marginX * 2;
-        const lineH = 13;
-        const fontSize = 10;
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(fontSize);
-        let y = marginY;
-        const paragraphs = plain.split(/\n\n+/);
-        paragraphs.forEach((para) => {
-          const block = para.trim();
-          if (!block) return;
-          const lines = doc.splitTextToSize(block, maxW);
-          lines.forEach((ln) => {
-            if (y + lineH > pageH - marginY) {
-              doc.addPage();
-              y = marginY;
-            }
-            doc.text(ln, marginX, y);
-            y += lineH;
+        if (typeof html2canvas !== "function") {
+          await showMessageModal(
+            "The layout helper (html2canvas) did not load. Check your network or ad blocker, then try again.",
+            "Download Report"
+          );
+          return;
+        }
+        const html = buildReportExportHtml(data, localTimeLine);
+        const host = document.createElement("div");
+        host.setAttribute("data-tc-pdf-export", "1");
+        host.style.cssText = "position:fixed;left:-14000px;top:0;width:720px;background:#ffffff;";
+        host.innerHTML = html;
+        document.body.appendChild(host);
+        const target = host.firstElementChild || host;
+        try {
+          const canvas = await html2canvas(target, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: "#ffffff",
+            width: target.scrollWidth,
+            windowWidth: target.scrollWidth,
           });
-          y += lineH * 0.35;
-        });
-        doc.save((filenameStem || "travelcare-report") + ".pdf");
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new JsPdfCtor({ unit: "pt", format: "letter", compress: true });
+          const pageW = pdf.internal.pageSize.getWidth();
+          const pageH = pdf.internal.pageSize.getHeight();
+          const margin = 36;
+          const usableH = pageH - 2 * margin;
+          const imgW = pageW - 2 * margin;
+          const imgH = (canvas.height * imgW) / canvas.width;
+          let heightLeft = imgH;
+          let yPos = margin;
+          pdf.addImage(imgData, "PNG", margin, yPos, imgW, imgH);
+          heightLeft -= usableH;
+          while (heightLeft > 0) {
+            yPos = margin - (imgH - heightLeft);
+            pdf.addPage();
+            pdf.addImage(imgData, "PNG", margin, yPos, imgW, imgH);
+            heightLeft -= usableH;
+          }
+          pdf.save((filenameStem || "travelcare-report") + ".pdf");
+        } finally {
+          host.remove();
+        }
       }
 
       function renderAssistResponse(data) {
@@ -3357,6 +3988,61 @@
         }
         appendOverviewCorpusAndRules(ov, data);
 
+        if (data.llm_judge && typeof data.llm_judge === "object") {
+          const j = data.llm_judge;
+          const wrap = document.createElement("div");
+          wrap.className = "judge-eval-box";
+          wrap.style.marginTop = "1rem";
+          wrap.style.padding = "12px 14px";
+          wrap.style.borderRadius = "10px";
+          wrap.style.border = "1px solid #c4b5fd";
+          wrap.style.background = "linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%)";
+          const h4 = document.createElement("h4");
+          h4.style.margin = "0 0 0.35rem";
+          h4.style.fontSize = "0.95rem";
+          h4.textContent = "Independent evaluator (LLM-as-judge)";
+          wrap.appendChild(h4);
+          const meta = document.createElement("p");
+          meta.className = "muted";
+          meta.style.margin = "0 0 0.5rem";
+          meta.textContent =
+            "Evaluator model: " +
+            (j.evaluator_model || "—") +
+            " — audits the primary model’s recommendation for urgency fit and safety (orientation only; not a second diagnosis).";
+          wrap.appendChild(meta);
+          const ul = document.createElement("ul");
+          ul.style.margin = "0";
+          ul.style.paddingLeft = "1.15rem";
+          const ua = j.urgency_level_appropriate;
+          const ur = ua === true ? "yes" : ua === false ? "no" : "uncertain / not stated";
+          ul.appendChild(el("li", "", "Is urgency level appropriate? " + ur));
+          ul.appendChild(
+            el(
+              "li",
+              "",
+              "Overall correctness: " + String(j.overall_correctness || "—").replace(/_/g, " ")
+            )
+          );
+          ul.appendChild(el("li", "", "Recommendation safety: " + String(j.recommendation_safety || "—")));
+          wrap.appendChild(ul);
+          if (j.urgency_notes)
+            wrap.appendChild(el("p", "muted", "Urgency rationale: " + j.urgency_notes));
+          if (j.safety_notes)
+            wrap.appendChild(el("p", "muted", "Safety rationale: " + j.safety_notes));
+          if (j.correctness_notes)
+            wrap.appendChild(el("p", "muted", "Correctness rationale: " + j.correctness_notes));
+          ov.appendChild(wrap);
+        }
+        if (data.llm_judge_error) {
+          ov.appendChild(
+            el(
+              "p",
+              "muted",
+              "Evaluator error (primary report unchanged): " + String(data.llm_judge_error)
+            )
+          );
+        }
+
         if (data.llm && data.llm.summary_for_traveler) {
           sm.appendChild(el("p", "", data.llm.summary_for_traveler));
         } else {
@@ -3442,6 +4128,11 @@
           }
         }
 
+        try {
+          lastAssistReasoningData = JSON.parse(JSON.stringify(data));
+        } catch (e) {
+          lastAssistReasoningData = { ...data };
+        }
         const forJson = { ...data };
         delete forJson.llm_api_prompt;
         lastAssistReportData = forJson;
@@ -3449,22 +4140,46 @@
         jsonEl.textContent = JSON.stringify(forJson, null, 2);
         const dlBtn = document.getElementById("downloadReportBtn");
         const dlToolbar = document.getElementById("downloadReportPdfToolbarBtn");
+        const dlReason = document.getElementById("downloadReasoningReportBtn");
+        const dlReasonTb = document.getElementById("downloadReasoningReportToolbarBtn");
         if (dlBtn) dlBtn.hidden = false;
         if (dlToolbar) dlToolbar.hidden = false;
+        if (dlReason) dlReason.hidden = false;
+        if (dlReasonTb) dlReasonTb.hidden = false;
       }
 
-      function downloadCurrentReportPdf() {
+      async function downloadCurrentReportPdf() {
         if (!lastAssistReportData) {
-          showMessageModal(
+          await showMessageModal(
             "Generate a report first (after sending your situation in chat).",
-            "Download PDF"
+            "Download Report"
           );
           return;
         }
-        const md = buildReportExportMarkdown(lastAssistReportData, lastReportLocalTimeLabel);
         const modeStem = (lastReportSessionMode || "report").toLowerCase().replace(/\s+/g, "-");
         const stem = "travelcare-" + modeStem + "-" + new Date().toISOString().slice(0, 10);
-        downloadReportAsPdfFromMarkdown(md, stem);
+        try {
+          await downloadReportAsPdfFromData(lastAssistReportData, lastReportLocalTimeLabel, stem);
+        } catch (e) {
+          await showMessageModal(String(e), "Download Report");
+        }
+      }
+
+      async function downloadCurrentReasoningReport() {
+        if (!lastAssistReasoningData) {
+          await showMessageModal(
+            "Generate a report first (after sending your situation in chat).",
+            "Download Reasoning Report"
+          );
+          return;
+        }
+        const modeStem = (lastReportSessionMode || "report").toLowerCase().replace(/\s+/g, "-");
+        const stem = "travelcare-reasoning-" + modeStem + "-" + new Date().toISOString().slice(0, 10);
+        try {
+          downloadReasoningReportAsHtmlFile(lastAssistReasoningData, lastReportLocalTimeLabel, stem);
+        } catch (e) {
+          await showMessageModal(String(e), "Download Reasoning Report");
+        }
       }
 
       function updateChatChromeForSession() {
@@ -3650,12 +4365,17 @@
           out.hidden = true;
           if (flowViewReportBtn) flowViewReportBtn.hidden = true;
           lastAssistReportData = null;
+          lastAssistReasoningData = null;
           lastReportSessionMode = "";
           lastReportLocalTimeLabel = "";
           const dlClear = document.getElementById("downloadReportBtn");
           const dlToolbarClear = document.getElementById("downloadReportPdfToolbarBtn");
+          const dlReasonClear = document.getElementById("downloadReasoningReportBtn");
+          const dlReasonTbClear = document.getElementById("downloadReasoningReportToolbarBtn");
           if (dlClear) dlClear.hidden = true;
           if (dlToolbarClear) dlToolbarClear.hidden = true;
+          if (dlReasonClear) dlReasonClear.hidden = true;
+          if (dlReasonTbClear) dlReasonTbClear.hidden = true;
           sessionChatHistory = [];
           lastTreatmentPlanOptions = [];
           chatMessages.innerHTML = "";
@@ -3814,11 +4534,19 @@
 
       const downloadReportBtn = document.getElementById("downloadReportBtn");
       if (downloadReportBtn) {
-        downloadReportBtn.addEventListener("click", () => downloadCurrentReportPdf());
+        downloadReportBtn.addEventListener("click", () => void downloadCurrentReportPdf());
       }
       const downloadReportPdfToolbarBtn = document.getElementById("downloadReportPdfToolbarBtn");
       if (downloadReportPdfToolbarBtn) {
-        downloadReportPdfToolbarBtn.addEventListener("click", () => downloadCurrentReportPdf());
+        downloadReportPdfToolbarBtn.addEventListener("click", () => void downloadCurrentReportPdf());
+      }
+      const downloadReasoningReportBtn = document.getElementById("downloadReasoningReportBtn");
+      if (downloadReasoningReportBtn) {
+        downloadReasoningReportBtn.addEventListener("click", () => void downloadCurrentReasoningReport());
+      }
+      const downloadReasoningReportToolbarBtn = document.getElementById("downloadReasoningReportToolbarBtn");
+      if (downloadReasoningReportToolbarBtn) {
+        downloadReasoningReportToolbarBtn.addEventListener("click", () => void downloadCurrentReasoningReport());
       }
 
       const refineTreatmentCostBtn = document.getElementById("refineTreatmentCost");
@@ -3863,6 +4591,7 @@
         banner.textContent = "Config/load error: " + e;
         renderApiIndicators({
           openAiConfigured: false,
+          openAiModel: "",
           mapsEnabled: false,
           placesServerConfigured: false,
           webSearchConfigured: false,
