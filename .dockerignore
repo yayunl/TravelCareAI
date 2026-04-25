@@ -1,0 +1,35 @@
+# Git and local tooling
+.git
+.gitignore
+.cursor
+**/__pycache__
+**/*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Virtual environments
+venv
+.venv
+env
+
+# Secrets (inject at runtime). Keep .env.example in the image as documentation.
+.env
+
+# Local artifacts (not needed in the image)
+evaluation_reports
+evaluation_results*.csv
+logs
+.cache
+mcps
+agent-transcripts
+assets
+
+# Tests / IDE (if added later)
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.idea
+.vscode
+*.swp
+*.swo

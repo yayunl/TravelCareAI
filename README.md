@@ -20,6 +20,32 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 **Download report** saves a **PDF** (generated in the browser via [jsPDF](https://github.com/parallax/jsPDF) from the CDN; allow network access to `cdnjs.cloudflare.com` if you use a strict blocker).
 
+## Docker
+
+The repo includes a `Dockerfile` and `.dockerignore`. The image runs **Uvicorn** on `0.0.0.0` and honors the **`PORT`** environment variable (Cloud Run sets this automatically; locally it defaults to **8080**). **`LOG_DISABLE_FILE=1`** is set in the image so logs go to **stdout** (better for platforms with ephemeral disks).
+
+Build and run locally (pass the same secrets you would put in `.env`; do not bake secrets into the image):
+
+```bash
+docker build -t travelcare-ai .
+docker run --rm -p 8080:8080 \
+  -e OPENAI_API_KEY="sk-..." \
+  -e GOOGLE_MAPS_API_KEY="..." \
+  -e GOOGLE_MAPS_SERVER_KEY="..." \
+  travelcare-ai
+```
+
+Then open `http://localhost:8080/`. See [.env.example](.env.example) for optional variables (`SERPER_API_KEY`, `OPENAI_JUDGE_MODEL`, `APP_ACCESS_CODE`, etc.).
+
+### Google Cloud Run (short checklist)
+
+1. Build for linux/amd64 (Cloud Run’s default) and push to Artifact Registry, e.g.  
+   `docker build --platform linux/amd64 -t REGION-docker.pkg.dev/PROJECT/REPO/travelcare-ai:TAG .`  
+   `docker push REGION-docker.pkg.dev/PROJECT/REPO/travelcare-ai:TAG`
+2. Deploy: `gcloud run deploy SERVICE_NAME --image REGION-docker.pkg.dev/PROJECT/REPO/travelcare-ai:TAG --region REGION`
+3. In the Cloud Run service, add **environment variables or Secret Manager references** for `OPENAI_API_KEY`, `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SERVER_KEY`, and any other keys from `.env.example` you need.
+4. After you have a stable URL, restrict the **browser** Maps key by **HTTP referrer** to that origin; configure the **server** Maps key for server-side Geocoding/Places (IP or API restrictions as appropriate for Cloud Run egress).
+
 ## Environment
 
 | Variable | Purpose |
