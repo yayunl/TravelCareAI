@@ -763,11 +763,23 @@ def _write_reasoning_report_pdf(path: Path, payload: dict[str, Any]) -> None:
                         write_bullet(str(q).strip())
                 pdf.ln(1)
             rep = str(ex.get("assistant_visible_reply_as_sent_to_chat") or "").strip()
-            if rep:
-                write_body("Assistant reply (as sent to chat / simulator):\n\n" + rep)
+            write_subheading("Assistant reply (as sent to chat / simulator)")
+            write_body(
+                rep
+                or "(Empty — no assistant plain text was captured. The model may have returned only empty fields, "
+                "or plain-text mirroring omitted content. See Primary model excerpts below.)",
+                size=9.5,
+                leading=4.7,
+            )
             ans = str(ex.get("simulated_traveler_answer") or "").strip()
-            if ans:
-                write_body("Simulated traveler answer:\n\n" + ans)
+            write_subheading("Simulated traveler answer")
+            write_body(
+                ans
+                or "(Empty — simulator returned no traveler_reply text. Check OPENAI_API_KEY / model on this machine "
+                "or simulator_warning if present.)",
+                size=9.5,
+                leading=4.7,
+            )
             if ex.get("simulator_warning"):
                 write_body("Simulator warning: " + str(ex["simulator_warning"]), size=9, leading=4.2)
 
@@ -908,10 +920,10 @@ def assistant_turn_plain_text(data: dict[str, Any]) -> str:
     bits: list[str] = []
     llm = data.get("llm")
     if isinstance(llm, dict):
-        if llm.get("abstain") and llm.get("abstention_reason"):
-            bits.append("Abstention: " + str(llm["abstention_reason"]))
-        if llm.get("summary_for_traveler"):
-            bits.append(str(llm["summary_for_traveler"]))
+        if llm.get("abstain") and str(llm.get("abstention_reason") or "").strip():
+            bits.append("Abstention: " + str(llm["abstention_reason"]).strip())
+        if str(llm.get("summary_for_traveler") or "").strip():
+            bits.append(str(llm["summary_for_traveler"]).strip())
         wtn = llm.get("what_to_do_next")
         if isinstance(wtn, list) and wtn:
             bits.append("\n".join(f"{i + 1}. {str(s)}" for i, s in enumerate(wtn)))
@@ -975,16 +987,20 @@ def assistant_turn_plain_text(data: dict[str, Any]) -> str:
         if isinstance(cav, list) and cav:
             bits.append("Other listings (caution): " + " ".join(str(c) for c in cav))
         if bits:
-            out = "\n\n".join(bits)
-            if len(out) > _CHAT_TURN_MAX_CHARS:
-                return out[: _CHAT_TURN_MAX_CHARS - 3] + "..."
-            return out
+            # Drop whitespace-only segments so we never return " " / "\n" as the chat turn (breaks PDF + simulator).
+            parts = [str(b).strip() for b in bits if str(b).strip()]
+            if parts:
+                out = "\n\n".join(parts)
+                if len(out) > _CHAT_TURN_MAX_CHARS:
+                    return out[: _CHAT_TURN_MAX_CHARS - 3] + "..."
+                return out
     r = data.get("rule_rationale")
     if isinstance(r, list) and r:
-        out = "\n\n".join(str(x) for x in r)
+        out = "\n\n".join(str(x).strip() for x in r if str(x).strip())
         if len(out) > _CHAT_TURN_MAX_CHARS:
             return out[: _CHAT_TURN_MAX_CHARS - 3] + "..."
-        return out
+        if out.strip():
+            return out
     return "(No assistant wording returned — check OpenAI configuration or raw JSON.)"
 
 
@@ -1277,7 +1293,11 @@ def main() -> int:
                     if status != 200:
                         break
                     if ridx < num_assist_rounds - 1:
-                        asst_plain = asst_plain_for_log
+                        asst_plain = (asst_plain_for_log or "").strip()
+                        if not asst_plain:
+                            asst_plain = (
+                                "(No assistant plain text for this round — see API llm JSON in activity log.)"
+                            )
                         if len(asst_plain) > _CHAT_TURN_MAX_CHARS:
                             asst_plain = asst_plain[: _CHAT_TURN_MAX_CHARS - 3] + "..."
                         chat_history = [*chat_history, {"role": "assistant", "content": asst_plain}]
